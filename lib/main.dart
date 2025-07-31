@@ -1,24 +1,14 @@
-import 'package:carebase/pages/consultations_page.dart';
-import 'package:carebase/pages/patients_page.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
+import 'pages/login_page.dart';
 import 'pages/dashboard_page.dart';
 import 'pages/settings_page.dart';
-import 'core/theme/theme_provider.dart';
+import 'pages/patients_page.dart';
+import 'pages/consultations_page.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-
-  final themeProvider = ThemeProvider();
-  await themeProvider.loadThemeFromPrefs(); // Espera o tema salvo carregar
-
-  runApp(
-    ChangeNotifierProvider.value(
-      value: themeProvider,
-      child: const CareBaseApp(),
-    ),
-  );
+  runApp(const CareBaseApp());
 }
 
 class CareBaseApp extends StatelessWidget {
@@ -26,22 +16,20 @@ class CareBaseApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-
     return MaterialApp(
       title: 'CareBase',
-      themeMode: themeProvider.themeMode,
       theme: ThemeData(
         primarySwatch: Colors.teal,
         brightness: Brightness.light,
       ),
       darkTheme: ThemeData.dark(),
-      initialRoute: '/',
+      initialRoute: '/login',  // <-- login primeiro
       routes: {
-        '/': (context) => const DashboardPage(),
+        '/login': (context) => const LoginPage(),
+        '/dashboard': (context) => const DashboardPage(),
         '/config': (context) => const SettingsPage(),
-        '/pacientes': (context) => const PatientsPage(), // NOVA ROTA AQUI
-          '/consultas': (context) => const ConsultationsPage()
+        '/pacientes': (context) => const PatientsPage(),
+        '/consultas': (context) => const ConsultationsPage(),
       },
     );
   }
