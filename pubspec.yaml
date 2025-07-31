@@ -11,22 +11,15 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
-  # Ícones no estilo iOS
   cupertino_icons: ^1.0.8
-
-  # Gerenciamento de estado
   provider: ^6.1.1
-
-  # Banco de dados local (opcional para usar depois)
   sqflite: ^2.3.0
   path: ^1.9.0
   path_provider: ^2.1.2
-
-  # Salvando preferências (tema, etc.)
   shared_preferences: ^2.2.2
   uuid: ^4.5.1
-
+  intl: ^0.18.0
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -34,13 +27,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
-  # Para adicionar imagens futuramente
-  # assets:
-  #   - assets/images/
-
-  # Para adicionar fontes customizadas futuramente
-  # fonts:
-  #   - family: NomeDaFonte
-  #     fonts:
-  #       - asset: fonts/NomeDaFonte-Regular.ttf
