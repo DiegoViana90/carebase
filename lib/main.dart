@@ -1,3 +1,4 @@
+import 'package:carebase/pages/patients_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -38,6 +39,7 @@ class CareBaseApp extends StatelessWidget {
       routes: {
         '/': (context) => const DashboardPage(),
         '/config': (context) => const SettingsPage(),
+        '/pacientes': (context) => const PatientsPage(), // NOVA ROTA AQUI
       },
     );
   }

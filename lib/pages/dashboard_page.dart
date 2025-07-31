@@ -6,17 +6,13 @@ class DashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('CareBase – Gestão de Pacientes'),
-      ),
+      appBar: AppBar(title: const Text('CareBase – Gestão de Pacientes')),
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
             const DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.teal,
-              ),
+              decoration: BoxDecoration(color: Colors.teal),
               child: Text(
                 'Menu Principal',
                 style: TextStyle(color: Colors.white, fontSize: 24),
