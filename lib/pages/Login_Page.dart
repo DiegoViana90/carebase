@@ -41,6 +41,16 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  void _createTestAccount() {
+    // Aqui você pode implementar a criação da conta de teste
+    // Por enquanto só um snackbar para demonstrar
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Função criar conta teste ainda não implementada'),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -55,9 +65,12 @@ class _LoginPageState extends State<LoginPage> {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 12,
-                  offset: const Offset(0, 6),
+                  color: Colors.black.withOpacity(0.7), // sombra mais escura
+                  blurRadius: 30, // sombra mais espalhada
+                  offset: const Offset(
+                    0,
+                    8,
+                  ), // sombra mais deslocada verticalmente
                 ),
               ],
             ),
@@ -86,7 +99,8 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     keyboardType: TextInputType.emailAddress,
                     validator: (value) {
-                      if (value == null || value.isEmpty) return 'Informe o email';
+                      if (value == null || value.isEmpty)
+                        return 'Informe o email';
                       if (!value.contains('@')) return 'Email inválido';
                       return null;
                     },
@@ -103,14 +117,18 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     obscureText: true,
                     validator: (value) {
-                      if (value == null || value.isEmpty) return 'Informe a senha';
+                      if (value == null || value.isEmpty)
+                        return 'Informe a senha';
                       if (value.length < 4) return 'Senha muito curta';
                       return null;
                     },
                   ),
                   const SizedBox(height: 24),
                   if (_errorMessage != null) ...[
-                    Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+                    Text(
+                      _errorMessage!,
+                      style: const TextStyle(color: Colors.red),
+                    ),
                     const SizedBox(height: 16),
                   ],
                   SizedBox(
@@ -124,16 +142,45 @@ class _LoginPageState extends State<LoginPage> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: _loading
-                          ? const SizedBox(
-                              height: 24,
-                              width: 24,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-                            )
-                          : const Text(
-                              'Entrar',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                            ),
+                      child:
+                          _loading
+                              ? const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 3,
+                                ),
+                              )
+                              : const Text(
+                                'Entrar',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: _createTestAccount,
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.teal,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 16,
+                      ), // menos espaço interno
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      minimumSize: const Size(
+                        150,
+                        36,
+                      ), // largura e altura mínimas
+                    ),
+                    child: const Text(
+                      'Criar conta teste (3 dias)',
+                      style: TextStyle(fontSize: 12, color: Colors.white),
                     ),
                   ),
                 ],
