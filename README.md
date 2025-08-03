@@ -14,16 +14,12 @@ Com o CareBase, profissionais podem:
 - **Visualizar Prontuários:** Acessar o histórico de atendimentos de forma simples e rápida.
 - **Gerenciar Finanças:** Controlar os dados financeiros relacionados a cada paciente.
 - **Agendar Consultas:** Organizar e acompanhar compromissos com praticidade.
-- **Manter Registros Médicos:** Armazenar e consultar prontuários por consulta e por paciente.
-
-## 🔍 Por que escolher o CareBase?
-
-- **Tecnologia Moderna e Offline:** Desenvolvido com **Flutter** e **SQLite**, roda totalmente no celular, sem necessidade de internet ou servidores externos.
-- **Fácil de Usar:** Interface amigável, pensada para o dia a dia de profissionais da saúde.
-- **Seguro e Rápido:** Dados salvos localmente com alta performance e privacidade.
-- **Escalável:** Arquitetura pronta para futuras integrações com backend online, como API em **.NET 8**, sincronização com nuvem, multiusuário, backups automáticos, entre outros recursos.
+- **Manter Registros Clínicos:** Armazenar e consultar prontuários por consulta e por paciente.
 
 ---
 
 **CareBase – Gestão de Pacientes**  
 A união ideal entre simplicidade, portabilidade e visão de futuro para clínicas e profissionais de saúde.
+
+
+flutter run -d chrome --release --web-port=50457
