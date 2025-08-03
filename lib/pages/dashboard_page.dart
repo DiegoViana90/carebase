@@ -40,9 +40,9 @@ class DashboardPage extends StatelessWidget {
       drawer: Drawer(
         child: Column(
           children: [
-            // Cabeçalho mais compacto
+            // Cabeçalho compacto
             Container(
-              height: 100,
+              height: 80,
               width: double.infinity,
               color: Colors.teal,
               alignment: Alignment.centerLeft,
@@ -53,51 +53,43 @@ class DashboardPage extends StatelessWidget {
               ),
             ),
 
-            // Conteúdo do menu
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.person),
-                    title: const Text('Pacientes'),
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.pushNamed(context, '/pacientes');
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.calendar_today),
-                    title: const Text('Consultas'),
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.pushNamed(context, '/consultas');
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.attach_money),
-                    title: const Text('Financeiro'),
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.pushNamed(context, '/financeiro');
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  ListTile(
-                    leading: const Icon(Icons.settings),
-                    title: const Text('Configurações'),
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.pushNamed(context, '/config');
-                    },
-                  ),
-                ],
-              ),
+            // Lista principal
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('Pacientes'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/pacientes');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.calendar_today),
+              title: const Text('Consultas'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/consultas');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.attach_money),
+              title: const Text('Financeiro'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/financeiro');
+              },
             ),
 
-            const Divider(),
+            const Spacer(),
 
-            // Sair
+            ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text('Configurações'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/config');
+              },
+            ),
+            const Divider(height: 1),
             ListTile(
               leading: const Icon(Icons.logout),
               title: const Text('Sair'),
