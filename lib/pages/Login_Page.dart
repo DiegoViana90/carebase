@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:carebase/pages/test_account_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -47,12 +48,8 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  void _createTestAccount() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Função criar conta teste ainda não implementada'),
-      ),
-    );
+  void _showTestAccountModal() {
+    showDialog(context: context, builder: (_) => const TestAccountModal());
   }
 
   @override
@@ -175,7 +172,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 12),
                   TextButton(
-                    onPressed: _createTestAccount,
+                    onPressed: _showTestAccountModal,
                     style: TextButton.styleFrom(
                       backgroundColor: Colors.teal,
                       padding: const EdgeInsets.symmetric(
