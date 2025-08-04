@@ -17,6 +17,7 @@ class _TestAccountModalState extends State<TestAccountModal> {
   final _userEmailController = TextEditingController();
   final _userCpfController = TextEditingController();
   final _userPasswordController = TextEditingController();
+  final _userNameController = TextEditingController();
 
   bool _loading = false;
   String? _error;
@@ -34,6 +35,7 @@ class _TestAccountModalState extends State<TestAccountModal> {
         businessName: _businessNameController.text.trim(),
         businessEmail: _businessEmailController.text.trim(),
         businessTax: _businessTaxController.text.trim(),
+        userName: _userNameController.text.trim(),
         userEmail: _userEmailController.text.trim(),
         userCpf: _userCpfController.text.trim(),
         userPassword: _userPasswordController.text,
@@ -66,7 +68,8 @@ class _TestAccountModalState extends State<TestAccountModal> {
       contentPadding: const EdgeInsets.all(0),
       content: LayoutBuilder(
         builder: (context, constraints) {
-          final maxWidth = constraints.maxWidth > 500 ? 500.0 : constraints.maxWidth;
+          final maxWidth =
+              constraints.maxWidth > 500 ? 500.0 : constraints.maxWidth;
 
           return Container(
             width: maxWidth,
@@ -76,7 +79,9 @@ class _TestAccountModalState extends State<TestAccountModal> {
               children: [
                 Text(
                   'Criar conta teste (3 dias)',
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Form(
@@ -86,11 +91,26 @@ class _TestAccountModalState extends State<TestAccountModal> {
                       children: [
                         Align(
                           alignment: Alignment.centerLeft,
-                          child: Text('Dados da Empresa', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                          child: Text(
+                            'Dados da Empresa',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 8),
-                        _buildInputField(_businessNameController, 'Nome da empresa', theme),
-                        _buildInputField(_businessEmailController, 'Email da empresa', theme, keyboardType: TextInputType.emailAddress, validator: _validateEmail),
+                        _buildInputField(
+                          _businessNameController,
+                          'Nome da empresa',
+                          theme,
+                        ),
+                        _buildInputField(
+                          _businessEmailController,
+                          'Email da empresa',
+                          theme,
+                          keyboardType: TextInputType.emailAddress,
+                          validator: _validateEmail,
+                        ),
                         _buildInputField(
                           _businessTaxController,
                           'CNPJ/CPF da empresa',
@@ -105,16 +125,48 @@ class _TestAccountModalState extends State<TestAccountModal> {
                         const SizedBox(height: 20),
                         Align(
                           alignment: Alignment.centerLeft,
-                          child: Text('Dados do Usuário', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                          child: Text(
+                            'Dados do Usuário',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 8),
-                        _buildInputField(_userEmailController, 'Email do usuário', theme, keyboardType: TextInputType.emailAddress, validator: _validateEmail),
-                        _buildInputField(_userCpfController, 'CPF do usuário', theme, keyboardType: TextInputType.number, validator: _validateCpf),
-                        _buildInputField(_userPasswordController, 'Senha', theme, obscureText: true, validator: _validatePassword),
+                        _buildInputField(
+                          _userNameController,
+                          'Nome do usuário',
+                          theme,
+                          validator: _validateName,
+                        ),
+                        _buildInputField(
+                          _userEmailController,
+                          'Email do usuário',
+                          theme,
+                          keyboardType: TextInputType.emailAddress,
+                          validator: _validateEmail,
+                        ),
+                        _buildInputField(
+                          _userCpfController,
+                          'CPF do usuário',
+                          theme,
+                          keyboardType: TextInputType.number,
+                          validator: _validateCpf,
+                        ),
+                        _buildInputField(
+                          _userPasswordController,
+                          'Senha',
+                          theme,
+                          obscureText: true,
+                          validator: _validatePassword,
+                        ),
                         if (_error != null)
                           Padding(
                             padding: const EdgeInsets.only(top: 10),
-                            child: Text(_error!, style: const TextStyle(color: Colors.red)),
+                            child: Text(
+                              _error!,
+                              style: const TextStyle(color: Colors.red),
+                            ),
                           ),
                       ],
                     ),
@@ -125,27 +177,37 @@ class _TestAccountModalState extends State<TestAccountModal> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     TextButton(
-                      onPressed: _loading ? null : () => Navigator.of(context).pop(),
+                      onPressed:
+                          _loading ? null : () => Navigator.of(context).pop(),
                       child: const Text('Cancelar'),
                     ),
                     ElevatedButton.icon(
                       onPressed: _loading ? null : _handleSubmit,
-                      icon: _loading
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                            )
-                          : const Icon(Icons.check, size: 18),
+                      icon:
+                          _loading
+                              ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                              : const Icon(Icons.check, size: 18),
                       label: const Text('Criar conta'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: theme.primaryColor,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ],
-                )
+                ),
               ],
             ),
           );
@@ -169,15 +231,22 @@ class _TestAccountModalState extends State<TestAccountModal> {
         controller: controller,
         keyboardType: keyboardType,
         obscureText: obscureText,
-        validator: validator ?? (v) => v == null || v.isEmpty ? 'Obrigatório' : null,
+        validator:
+            validator ?? (v) => v == null || v.isEmpty ? 'Obrigatório' : null,
         style: theme.textTheme.bodyMedium,
         decoration: InputDecoration(
           labelText: label,
           suffixIcon: suffixIcon,
           filled: true,
-          fillColor: theme.inputDecorationTheme.fillColor ??
-              (theme.brightness == Brightness.dark ? Colors.grey[900] : Colors.grey[200]),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          fillColor:
+              theme.inputDecorationTheme.fillColor ??
+              (theme.brightness == Brightness.dark
+                  ? Colors.grey[900]
+                  : Colors.grey[200]),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),
@@ -187,18 +256,19 @@ class _TestAccountModalState extends State<TestAccountModal> {
   void _showCnpjInfo() {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Informação sobre CNPJ/CPF'),
-        content: const Text(
-          'Se a empresa ainda não possuir um CNPJ, você pode informar o CPF do responsável como identificador temporário.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Entendi'),
+      builder:
+          (_) => AlertDialog(
+            title: const Text('Informação sobre CNPJ/CPF'),
+            content: const Text(
+              'Se a empresa ainda não possuir um CNPJ, você pode informar o CPF do responsável como identificador temporário.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Entendi'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -213,7 +283,13 @@ class _TestAccountModalState extends State<TestAccountModal> {
   }
 
   String? _validateCnpj(String? value) {
-    if (value == null || (value.length != 14 && value.length != 11)) return 'CNPJ ou CPF inválido';
+    if (value == null || (value.length != 14 && value.length != 11))
+      return 'CNPJ ou CPF inválido';
+    return null;
+  }
+
+  String? _validateName(String? value) {
+    if (value == null || value.length < 2) return 'Nome inválido';
     return null;
   }
 
