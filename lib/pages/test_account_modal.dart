@@ -19,6 +19,7 @@ class _TestAccountModalState extends State<TestAccountModal> {
   final _userCpfController = TextEditingController();
   final _userPasswordController = TextEditingController();
   final _userNameController = TextEditingController();
+  final Set<String> _touchedFields = {};
 
   bool _loading = false;
   String? _error;
@@ -87,7 +88,7 @@ class _TestAccountModalState extends State<TestAccountModal> {
                 const SizedBox(height: 16),
                 Form(
                   key: _formKey,
-                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  autovalidateMode: AutovalidateMode.disabled,
                   child: SingleChildScrollView(
                     child: Column(
                       children: [
@@ -103,12 +104,14 @@ class _TestAccountModalState extends State<TestAccountModal> {
                         const SizedBox(height: 8),
                         _buildInputField(
                           _businessNameController,
+                          'businessName', // fieldKey único
                           'Nome da empresa',
                           theme,
                           validator: validateName,
                         ),
                         _buildInputField(
                           _businessEmailController,
+                          'businessEmail', // CORRIGIDO: fieldKey único
                           'Email da empresa',
                           theme,
                           keyboardType: TextInputType.emailAddress,
@@ -116,6 +119,7 @@ class _TestAccountModalState extends State<TestAccountModal> {
                         ),
                         _buildInputField(
                           _businessTaxController,
+                          'businessTax', // CORRIGIDO: fieldKey único
                           'CNPJ/CPF da empresa',
                           theme,
                           keyboardType: TextInputType.number,
@@ -136,17 +140,19 @@ class _TestAccountModalState extends State<TestAccountModal> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 8),
 
+                        const SizedBox(height: 8),
                         // --- DADOS DO USUÁRIO ---
                         _buildInputField(
                           _userNameController,
+                          'userName', // fieldKey único
                           'Nome do usuário',
                           theme,
                           validator: validateName,
                         ),
                         _buildInputField(
                           _userEmailController,
+                          'userEmail', // fieldKey único
                           'Email do usuário',
                           theme,
                           keyboardType: TextInputType.emailAddress,
@@ -154,6 +160,7 @@ class _TestAccountModalState extends State<TestAccountModal> {
                         ),
                         _buildInputField(
                           _userCpfController,
+                          'userCpf', // fieldKey único
                           'CPF do usuário',
                           theme,
                           keyboardType: TextInputType.number,
@@ -161,6 +168,7 @@ class _TestAccountModalState extends State<TestAccountModal> {
                         ),
                         _buildInputField(
                           _userPasswordController,
+                          'userPassword', // fieldKey único
                           'Senha',
                           theme,
                           obscureText: true,
@@ -224,6 +232,7 @@ class _TestAccountModalState extends State<TestAccountModal> {
 
   Widget _buildInputField(
     TextEditingController controller,
+    String fieldKey, // ← novo
     String label,
     ThemeData theme, {
     TextInputType? keyboardType,
@@ -237,8 +246,14 @@ class _TestAccountModalState extends State<TestAccountModal> {
         controller: controller,
         keyboardType: keyboardType,
         obscureText: obscureText,
-        validator:
-            validator ?? (v) => v == null || v.isEmpty ? 'Obrigatório' : null,
+        onTap: () {
+          setState(() => _touchedFields.add(fieldKey));
+        },
+        validator: (value) {
+          if (!_touchedFields.contains(fieldKey)) return null;
+          return validator?.call(value) ??
+              (value == null || value.isEmpty ? 'Obrigatório' : null);
+        },
         style: theme.textTheme.bodyMedium,
         decoration: InputDecoration(
           labelText: label,
