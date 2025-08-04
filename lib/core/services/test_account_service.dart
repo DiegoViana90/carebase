@@ -3,48 +3,35 @@ import 'package:http/http.dart' as http;
 import 'package:carebase/core/config/app_config.dart';
 
 class TestAccountService {
- static Future<void> createTestAccount({
-  required String businessName,
-  required String businessEmail,
-  required String businessTax,
-  required String userEmail,
-  required String userCpf,
-  required String userPassword,
-  required String userName, // <-- ADICIONADO
-}) async {
-  final baseUrl = AppConfig.apiBaseUrl;
+  static Future<void> createTestAccount({
+    required String businessName,
+    required String businessEmail,
+    required String businessTax,
+    required String userEmail,
+    required String userCpf,
+    required String userPassword,
+    required String userName,
+  }) async {
+    final baseUrl = AppConfig.apiBaseUrl;
 
-  // Criar empresa
-  final businessResponse = await http.post(
-    Uri.parse('$baseUrl/api/business/create-business'),
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode({
-      'businessName': businessName,
-      'businessEmail': businessEmail,
-      'businessTaxNumber': businessTax,
-    }),
-  );
+    final response = await http.post(
+      Uri.parse('$baseUrl/business/test-account'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'businessName': businessName,
+        'businessEmail': businessEmail,
+        'businessTaxNumber': businessTax,
+        'userName': userName,
+        'userEmail': userEmail,
+        'userPassword': userPassword,
+        'userTaxNumber': userCpf,
+      }),
+    );
 
-  if (businessResponse.statusCode != 201) {
-    throw Exception(jsonDecode(businessResponse.body)['message'] ?? 'Erro ao criar empresa');
+    if (response.statusCode != 201) {
+      throw Exception(
+        jsonDecode(response.body)['message'] ?? 'Erro ao criar conta teste',
+      );
+    }
   }
-
-  // Criar usuário
-  final userResponse = await http.post(
-    Uri.parse('$baseUrl/api/user'),
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode({
-      'name': userName, // <-- ADICIONADO
-      'email': userEmail,
-      'password': userPassword,
-      'taxNumber': userCpf,
-      'businessTaxNumber': businessTax,
-    }),
-  );
-
-  if (userResponse.statusCode != 201) {
-    throw Exception(jsonDecode(userResponse.body)['message'] ?? 'Erro ao criar usuário');
-  }
-}
-
 }

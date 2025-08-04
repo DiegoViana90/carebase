@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:carebase/core/services/test_account_service.dart';
+import 'package:carebase/utils/validators.dart';
 
 class TestAccountModal extends StatefulWidget {
   const TestAccountModal({super.key});
@@ -86,6 +87,7 @@ class _TestAccountModalState extends State<TestAccountModal> {
                 const SizedBox(height: 16),
                 Form(
                   key: _formKey,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
                   child: SingleChildScrollView(
                     child: Column(
                       children: [
@@ -103,25 +105,27 @@ class _TestAccountModalState extends State<TestAccountModal> {
                           _businessNameController,
                           'Nome da empresa',
                           theme,
+                          validator: validateName,
                         ),
                         _buildInputField(
                           _businessEmailController,
                           'Email da empresa',
                           theme,
                           keyboardType: TextInputType.emailAddress,
-                          validator: _validateEmail,
+                          validator: validateEmail,
                         ),
                         _buildInputField(
                           _businessTaxController,
                           'CNPJ/CPF da empresa',
                           theme,
                           keyboardType: TextInputType.number,
-                          validator: _validateCnpj,
+                          validator: validateCpfOrCnpj,
                           suffixIcon: IconButton(
                             icon: const Icon(Icons.info_outline),
                             onPressed: _showCnpjInfo,
                           ),
                         ),
+
                         const SizedBox(height: 20),
                         Align(
                           alignment: Alignment.centerLeft,
@@ -133,32 +137,34 @@ class _TestAccountModalState extends State<TestAccountModal> {
                           ),
                         ),
                         const SizedBox(height: 8),
+
+                        // --- DADOS DO USUÁRIO ---
                         _buildInputField(
                           _userNameController,
                           'Nome do usuário',
                           theme,
-                          validator: _validateName,
+                          validator: validateName,
                         ),
                         _buildInputField(
                           _userEmailController,
                           'Email do usuário',
                           theme,
                           keyboardType: TextInputType.emailAddress,
-                          validator: _validateEmail,
+                          validator: validateEmail,
                         ),
                         _buildInputField(
                           _userCpfController,
                           'CPF do usuário',
                           theme,
                           keyboardType: TextInputType.number,
-                          validator: _validateCpf,
+                          validator: validateCpf,
                         ),
                         _buildInputField(
                           _userPasswordController,
                           'Senha',
                           theme,
                           obscureText: true,
-                          validator: _validatePassword,
+                          validator: validatePassword,
                         ),
                         if (_error != null)
                           Padding(
@@ -270,31 +276,5 @@ class _TestAccountModalState extends State<TestAccountModal> {
             ],
           ),
     );
-  }
-
-  String? _validateEmail(String? value) {
-    if (value == null || !value.contains('@')) return 'Email inválido';
-    return null;
-  }
-
-  String? _validateCpf(String? value) {
-    if (value == null || value.length != 11) return 'CPF inválido';
-    return null;
-  }
-
-  String? _validateCnpj(String? value) {
-    if (value == null || (value.length != 14 && value.length != 11))
-      return 'CNPJ ou CPF inválido';
-    return null;
-  }
-
-  String? _validateName(String? value) {
-    if (value == null || value.length < 2) return 'Nome inválido';
-    return null;
-  }
-
-  String? _validatePassword(String? value) {
-    if (value == null || value.length < 4) return 'Senha muito curta';
-    return null;
   }
 }
