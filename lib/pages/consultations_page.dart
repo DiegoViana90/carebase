@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:carebase/utils/base_page_layout.dart';
+import 'package:carebase/pages/schedule_consultation_modal.dart';
 
 class ConsultationsPage extends StatefulWidget {
   const ConsultationsPage({super.key});
@@ -36,6 +37,13 @@ class _ConsultationsPageState extends State<ConsultationsPage> {
     return beginningNextMonth.subtract(const Duration(days: 1)).day;
   }
 
+  void _openScheduleModal(DateTime date) {
+    showDialog(
+      context: context,
+      builder: (_) => ScheduleConsultationModal(date: date),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final totalDays = daysInMonth(selectedYear, selectedMonth);
@@ -69,15 +77,14 @@ class _ConsultationsPageState extends State<ConsultationsPage> {
               const SizedBox(width: 24),
               DropdownButton<int>(
                 value: selectedYear,
-                items:
-                    years
-                        .map(
-                          (year) => DropdownMenuItem(
-                            value: year,
-                            child: Text(year.toString()),
-                          ),
-                        )
-                        .toList(),
+                items: years
+                    .map(
+                      (year) => DropdownMenuItem(
+                        value: year,
+                        child: Text(year.toString()),
+                      ),
+                    )
+                    .toList(),
                 onChanged: (value) {
                   if (value != null) {
                     setState(() {
@@ -100,21 +107,18 @@ class _ConsultationsPageState extends State<ConsultationsPage> {
                 mainAxisSpacing: 8,
                 childAspectRatio: 1,
               ),
-              itemCount: totalDays,
+              itemCount: daysInMonth(selectedYear, selectedMonth),
               itemBuilder: (context, index) {
                 final day = index + 1;
-                final dateStr =
-                    '${day.toString().padLeft(2, '0')}/${selectedMonth.toString().padLeft(2, '0')}/${selectedYear.toString().substring(2)}';
+                final date = DateTime(selectedYear, selectedMonth, day);
+                final dateStr = DateFormat('dd/MM/yy').format(date);
 
                 return GestureDetector(
-                  onTap: () {
-                    // ação para agendar/ver consulta
-                  },
+                  onTap: () => _openScheduleModal(date),
                   child: Card(
-                    color:
-                        Theme.of(context).brightness == Brightness.dark
-                            ? Colors.grey[800]
-                            : Colors.grey[200],
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey[800]
+                        : Colors.grey[200],
                     elevation: 2,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
