@@ -1,6 +1,6 @@
 # CareBase – Gestão de Pacientes
 
-**CareBase** é um sistema de gestão moderno para profissionais da saúde, desenvolvido com **Flutter** e banco de dados em **SQLite**, com arquitetura preparada para futuras integrações com backend e nuvem.
+**CareBase** é um sistema de gestão moderno para profissionais da saúde, desenvolvido com **Flutter**, com arquitetura preparada para futuras integrações com backend e nuvem.
 
 ## 🧩 Descrição
 
