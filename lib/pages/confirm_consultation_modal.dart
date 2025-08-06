@@ -194,7 +194,11 @@ class _ConfirmConsultationModalState extends State<ConfirmConsultationModal> {
                   labelText: 'CPF do paciente',
                   border: OutlineInputBorder(),
                 ),
-                onChanged: (value) => nameOrCpf = value.trim(),
+                onChanged: (value) {
+                  final cleaned = value.replaceAll(RegExp(r'[^0-9]'), '');
+                  nameOrCpf = cleaned;
+                },
+
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'Informe o CPF do paciente';

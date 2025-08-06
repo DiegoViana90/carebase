@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:carebase/utils/base_page_layout.dart';
 import 'package:carebase/core/services/patient_service.dart';
 import 'package:carebase/pages/add_patient_page.dart';
+import 'package:flutter/services.dart';
 
 class PatientsPage extends StatefulWidget {
   const PatientsPage({super.key});
@@ -13,7 +14,6 @@ class PatientsPage extends StatefulWidget {
 class _PatientsPageState extends State<PatientsPage> {
   List<Map<String, dynamic>> allPatients = [];
   String searchName = '';
-  String filterDate = 'Todas';
   bool isLoading = true;
   String? error;
 
@@ -43,34 +43,12 @@ class _PatientsPageState extends State<PatientsPage> {
   }
 
   List<Map<String, dynamic>> get filteredPatients {
-    final now = DateTime.now();
-
     return allPatients.where((patient) {
       final name = (patient['name'] ?? '').toLowerCase();
-      final matchesName = name.contains(searchName.toLowerCase());
+      final email = (patient['email'] ?? '').toLowerCase();
+      final query = searchName.toLowerCase();
 
-      bool matchesDate = true;
-      final lastConsult = patient['lastConsultation'];
-      final dateStr = lastConsult != null ? lastConsult['startDate'] : null;
-
-      if (filterDate != 'Todas' && dateStr != null) {
-        final consultDate = DateTime.tryParse(dateStr);
-        if (consultDate != null) {
-          if (filterDate == 'Última Semana') {
-            matchesDate = consultDate.isAfter(
-              now.subtract(const Duration(days: 7)),
-            );
-          } else if (filterDate == 'Último Mês') {
-            matchesDate = consultDate.isAfter(
-              DateTime(now.year, now.month - 1, now.day),
-            );
-          }
-        } else {
-          matchesDate = false;
-        }
-      }
-
-      return matchesName && matchesDate;
+      return name.contains(query) || email.contains(query);
     }).toList();
   }
 
@@ -97,40 +75,12 @@ class _PatientsPageState extends State<PatientsPage> {
                         flex: 3,
                         child: TextField(
                           decoration: const InputDecoration(
-                            labelText: 'Buscar por nome',
+                            labelText: 'Buscar por nome ou email',
                             prefixIcon: Icon(Icons.search),
                           ),
                           onChanged: (value) {
                             setState(() {
                               searchName = value;
-                            });
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        flex: 2,
-                        child: DropdownButton<String>(
-                          value: filterDate,
-                          underline: const SizedBox(),
-                          isExpanded: true,
-                          items: const [
-                            DropdownMenuItem(
-                              value: 'Todas',
-                              child: Text('Todas'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'Última Semana',
-                              child: Text('Última Semana'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'Último Mês',
-                              child: Text('Último Mês'),
-                            ),
-                          ],
-                          onChanged: (value) {
-                            setState(() {
-                              filterDate = value ?? 'Todas';
                             });
                           },
                         ),
@@ -211,58 +161,79 @@ class _PatientsPageState extends State<PatientsPage> {
                                         const Divider(height: 10),
 
                                         // Linha 1: Email (esquerda) e CPF (direita)
+                                        // Linha 1: Email (esquerda) e CPF (direita)
                                         Row(
                                           children: [
                                             const Text('Email: '),
                                             Expanded(
                                               child: GestureDetector(
                                                 onTap: () {
-                                                  showDialog(
-                                                    context: context,
-                                                    builder:
-                                                        (_) => AlertDialog(
-                                                          title: const Text(
-                                                            'Email completo',
-                                                          ),
-                                                          content:
-                                                              SelectableText(
-                                                                email,
-                                                              ),
-                                                          actions: [
-                                                            TextButton(
-                                                              onPressed:
-                                                                  () =>
-                                                                      Navigator.pop(
-                                                                        context,
-                                                                      ),
-                                                              child: const Text(
-                                                                'Fechar',
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
+                                                  Clipboard.setData(
+                                                    ClipboardData(text: email),
+                                                  );
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        'Email copiado: $email',
+                                                      ),
+                                                      duration: const Duration(
+                                                        seconds: 2,
+                                                      ),
+                                                    ),
                                                   );
                                                 },
-                                                child: Align(
-                                                  alignment:
-                                                      Alignment
-                                                          .centerLeft, // alinha o Tooltip à esquerda
-                                                  child: Tooltip(
-                                                    message: email,
-                                                    preferBelow:
-                                                        false,
-                                                    child: Text(
-                                                      email,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                      softWrap: false,
+                                                child: Tooltip(
+                                                  message: 'Clique para copiar',
+                                                  preferBelow: false,
+                                                  child: Text(
+                                                    email,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    softWrap: false,
+                                                    style: const TextStyle(
+                                                      decoration:
+                                                          TextDecoration
+                                                              .underline,
                                                     ),
                                                   ),
                                                 ),
                                               ),
                                             ),
                                             const SizedBox(width: 8),
-                                            Text('CPF: ${_formatCpf(cpf)}'),
+                                            GestureDetector(
+                                              onTap: () {
+                                                Clipboard.setData(
+                                                  ClipboardData(
+                                                    text: _formatCpf(cpf),
+                                                  ),
+                                                );
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      'CPF copiado: ${_formatCpf(cpf)}',
+                                                    ),
+                                                    duration: const Duration(
+                                                      seconds: 2,
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                              child: Tooltip(
+                                                message: 'Clique para copiar',
+                                                child: Text(
+                                                  'CPF: ${_formatCpf(cpf)}',
+                                                  style: const TextStyle(
+                                                    decoration:
+                                                        TextDecoration
+                                                            .underline,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
                                           ],
                                         ),
 
@@ -272,8 +243,35 @@ class _PatientsPageState extends State<PatientsPage> {
                                         Row(
                                           children: [
                                             Expanded(
-                                              child: SelectableText(
-                                                'Telefone: $phone',
+                                              child: GestureDetector(
+                                                onTap: () {
+                                                  Clipboard.setData(
+                                                    ClipboardData(text: phone),
+                                                  );
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        'Telefone copiado: $phone',
+                                                      ),
+                                                      duration: const Duration(
+                                                        seconds: 2,
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                                child: Tooltip(
+                                                  message: 'Clique para copiar',
+                                                  child: Text(
+                                                    'Telefone: $phone',
+                                                    style: const TextStyle(
+                                                      decoration:
+                                                          TextDecoration
+                                                              .underline,
+                                                    ),
+                                                  ),
+                                                ),
                                               ),
                                             ),
                                             const SizedBox(width: 8),
