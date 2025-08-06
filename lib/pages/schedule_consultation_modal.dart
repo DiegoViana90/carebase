@@ -4,8 +4,13 @@ import 'package:carebase/pages/confirm_consultation_modal.dart';
 
 class ScheduleConsultationModal extends StatefulWidget {
   final DateTime date;
+  final List<Map<String, DateTime>> occupiedSlots;
 
-  const ScheduleConsultationModal({super.key, required this.date});
+  const ScheduleConsultationModal({
+    super.key,
+    required this.date,
+    this.occupiedSlots = const [],
+  });
 
   @override
   State<ScheduleConsultationModal> createState() =>
@@ -15,26 +20,51 @@ class ScheduleConsultationModal extends StatefulWidget {
 class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
   List<TimeOfDay> availableTimes = [];
   List<TimeOfDay> selectedTimes = [];
+  Set<String> occupiedSet = {};
   final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _generateTimeSlots();
+    _mapOccupiedSlots();
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToCurrentTime());
   }
 
   void _generateTimeSlots() {
-    if (availableTimes.isNotEmpty) return;
     final start = TimeOfDay(hour: 6, minute: 0);
     final end = TimeOfDay(hour: 22, minute: 0);
-
     TimeOfDay current = start;
+
     while (_compareTimes(current, end) <= 0) {
       availableTimes.add(current);
       current = _addMinutes(current, 30);
     }
   }
+
+  void _mapOccupiedSlots() {
+    for (final slot in widget.occupiedSlots) {
+      final start = DateTime.parse(slot['start']!.toString()).toLocal();
+      final end = DateTime.parse(slot['end']!.toString()).toLocal();
+
+      DateTime current = start;
+      while (!current.isAfter(end.subtract(const Duration(minutes: 1)))) {
+        final t = TimeOfDay.fromDateTime(current);
+        final key = _keyFromTime(t);
+        occupiedSet.add(key);
+        current = current.add(const Duration(minutes: 30));
+      }
+    }
+
+    for (final slot in widget.occupiedSlots) {
+      debugPrint(
+        '🧪 slot start: ${slot['start']} | type: ${slot['start'].runtimeType}',
+      );
+    }
+  }
+
+  String _keyFromTime(TimeOfDay time) =>
+      '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
 
   int _compareTimes(TimeOfDay a, TimeOfDay b) =>
       a.hour != b.hour ? a.hour - b.hour : a.minute - b.minute;
@@ -49,7 +79,6 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
     final closestIndex = availableTimes.indexWhere(
       (t) => _compareTimes(t, now) >= 0,
     );
-
     final targetIndex = closestIndex > 0 ? closestIndex - 3 : 0;
     final offset = targetIndex * 50.0;
 
@@ -70,7 +99,6 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
       bool isSelected = selectedTimes.contains(time);
 
       if (isSelected) {
-        // Remover o horário e cortar os que não são mais conectados
         selectedTimes.remove(time);
         selectedTimes = _rebuildContiguousSelection();
       } else {
@@ -89,7 +117,6 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
             selectedTimes.add(time);
             selectedTimes.sort(_compareTimes);
           }
-          // Não faz nada se for não-adjacente
         }
       }
     });
@@ -108,7 +135,7 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
       if (_compareTimes(current, _addMinutes(prev, 30)) == 0) {
         contiguous.add(current);
       } else {
-        break; // parou de ser contínuo
+        break;
       }
     }
 
@@ -116,6 +143,9 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
   }
 
   bool _isSelectable(TimeOfDay time) {
+    final key = _keyFromTime(time);
+    if (occupiedSet.contains(key)) return false;
+
     if (selectedTimes.isEmpty) return true;
 
     selectedTimes.sort(_compareTimes);
@@ -147,23 +177,31 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
             itemCount: availableTimes.length,
             itemBuilder: (context, index) {
               final time = availableTimes[index];
+              final timeKey = _keyFromTime(time);
               final isSelected = selectedTimes.contains(time);
+              final isOccupied = occupiedSet.contains(timeKey);
               final isEnabled = _isSelectable(time);
 
               final textColor =
-                  isSelected
+                  isOccupied
+                      ? Colors.red
+                      : isSelected
                       ? Theme.of(context).colorScheme.primary
                       : isEnabled
                       ? Theme.of(context).textTheme.bodyLarge?.color
                       : Theme.of(context).disabledColor;
 
               final backgroundColor =
-                  isSelected
+                  isOccupied
+                      ? Colors.red[100]
+                      : isSelected
                       ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
                       : Colors.transparent;
 
               final borderColor =
-                  isSelected
+                  isOccupied
+                      ? Colors.red
+                      : isSelected
                       ? Theme.of(context).colorScheme.primary
                       : Colors.grey.shade300;
 
@@ -203,8 +241,8 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
           onPressed:
               selectedTimes.isEmpty
                   ? null
-                  : () {
-                    showDialog(
+                  : () async {
+                    final result = await showDialog<bool>(
                       context: context,
                       builder:
                           (_) => ConfirmConsultationModal(
@@ -213,6 +251,9 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
                             date: widget.date,
                           ),
                     );
+                    if (result == true) {
+                      Navigator.pop(context, true);
+                    }
                   },
           icon: const Icon(Icons.add),
           label: const Text('Agendar'),

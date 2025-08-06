@@ -86,79 +86,82 @@ class _ConfirmConsultationModalState extends State<ConfirmConsultationModal> {
     final start = widget.selectedTimes.first;
     final nextSlot = _getNextTimeSlot();
     final startStr = start.format(context);
-    final timeRange = nextSlot != null
-        ? 'das $startStr até ${nextSlot.format(context)}'
-        : 'às $startStr';
+    final timeRange =
+        nextSlot != null
+            ? 'das $startStr até ${nextSlot.format(context)}'
+            : 'às $startStr';
 
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Confirmar agendamento'),
-        content: Text(
-          'Deseja agendar o paciente $name,\n'
-          'CPF: $cpf\n'
-          'para $formattedDate $timeRange?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+      builder:
+          (_) => AlertDialog(
+            title: const Text('Confirmar agendamento'),
+            content: Text(
+              'Deseja agendar o paciente $name,\n'
+              'CPF: $cpf\n'
+              'para $formattedDate $timeRange?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.pop(context); // Fecha confirmação
+
+                  final first = widget.selectedTimes.first;
+                  final last = widget.selectedTimes.last;
+
+                  final startDate =
+                      DateTime(
+                        widget.date.year,
+                        widget.date.month,
+                        widget.date.day,
+                        first.hour,
+                        first.minute,
+                      ).toLocal(); // 👈 Aplicando timezone local
+
+                  final endDate =
+                      DateTime(
+                            widget.date.year,
+                            widget.date.month,
+                            widget.date.day,
+                            last.hour,
+                            last.minute,
+                          )
+                          .add(const Duration(minutes: 30))
+                          .toLocal(); // 👈 +30min e local
+
+                  try {
+                    await ConsultationService.createConsultation(
+                      patientId: patientData!['patientId'],
+                      startDate: startDate,
+                      endDate: endDate,
+                    );
+
+                    if (mounted) {
+                      Navigator.pop(context); // Fecha modal principal
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Consulta agendada com sucesso!'),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      Navigator.pop(context); // Fecha modal principal
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Erro ao agendar consulta: $e')),
+                      );
+                    }
+                  }
+                },
+
+                child: const Text('Agendar'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context); // Fecha confirmação
-
-              final first = widget.selectedTimes.first;
-              final startDate = DateTime(
-                widget.date.year,
-                widget.date.month,
-                widget.date.day,
-                first.hour,
-                first.minute,
-              );
-
-              final last = widget.selectedTimes.last;
-              DateTime? endDate;
-              if (widget.selectedTimes.length > 1) {
-                endDate = DateTime(
-                  widget.date.year,
-                  widget.date.month,
-                  widget.date.day,
-                  last.hour,
-                  last.minute,
-                );
-              } else {
-                endDate = null; // Apenas um horário → sem endDate
-              }
-
-              try {
-                await ConsultationService.createConsultation(
-                  patientId: patientData!['patientId'],
-                  startDate: startDate,
-                  endDate: endDate,
-                );
-
-                if (mounted) {
-                  Navigator.pop(context); // Fecha modal principal
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Consulta agendada com sucesso!'),
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  Navigator.pop(context); // Fecha modal principal
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Erro ao agendar consulta: $e')),
-                  );
-                }
-              }
-            },
-            child: const Text('Agendar'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -223,9 +226,10 @@ class _ConfirmConsultationModalState extends State<ConfirmConsultationModal> {
           child: const Text('Cancelar'),
         ),
         ElevatedButton.icon(
-          onPressed: isLoading
-              ? null
-              : patientData != null
+          onPressed:
+              isLoading
+                  ? null
+                  : patientData != null
                   ? (confirmEnabled ? _showFinalConfirmation : null)
                   : _searchPatient,
           icon: Icon(patientData != null ? Icons.check : Icons.search),

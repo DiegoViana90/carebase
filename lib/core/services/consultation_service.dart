@@ -40,4 +40,37 @@ class ConsultationService {
       throw Exception(json['message'] ?? 'Erro ao agendar consulta.');
     }
   }
+
+  static Future<List<Map<String, dynamic>>> fetchAllConsultations() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+
+    if (token == null) {
+      throw Exception('Token de autenticação não encontrado.');
+    }
+
+    final response = await http.get(
+      Uri.parse('${AppConfig.apiBaseUrl}/Consultations'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+
+      if (json is Map<String, dynamic> && json.containsKey('data')) {
+        final data = json['data'];
+        if (data is List) {
+          return List<Map<String, dynamic>>.from(data);
+        }
+      }
+
+      throw Exception('Formato inesperado na resposta da API.');
+    } else {
+      final json = jsonDecode(response.body);
+      throw Exception(json['message'] ?? 'Erro ao buscar consultas.');
+    }
+  }
 }
