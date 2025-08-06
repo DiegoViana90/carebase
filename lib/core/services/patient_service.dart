@@ -12,21 +12,36 @@ class PatientService {
       throw Exception('Token de autenticação não encontrado.');
     }
 
-    final url = Uri.parse('${AppConfig.apiBaseUrl}/Patients');
+    final url = Uri.parse(
+      '${AppConfig.apiBaseUrl}/Patients/with-last-consultation',
+    );
+
     final response = await http.get(
       url,
       headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
     );
 
     if (response.statusCode == 200) {
-      final json = jsonDecode(response.body);
-      final List data = json['data'];
-      return data.cast<Map<String, dynamic>>();
+      if (response.body.isEmpty) {
+        throw Exception('Resposta vazia do servidor.');
+      }
+
+      try {
+        final json = jsonDecode(response.body);
+        final List data = json['data'];
+        return data.cast<Map<String, dynamic>>();
+      } catch (e) {
+        throw Exception('Erro ao interpretar resposta do servidor: $e');
+      }
     } else if (response.statusCode == 401) {
       throw Exception('Sessão expirada. Faça login novamente.');
     } else {
-      final error = jsonDecode(response.body);
-      throw Exception(error['message'] ?? 'Erro ao buscar pacientes.');
+      try {
+        final error = jsonDecode(response.body);
+        throw Exception(error['message'] ?? 'Erro ao buscar pacientes.');
+      } catch (_) {
+        throw Exception('Erro inesperado ao buscar pacientes.');
+      }
     }
   }
 

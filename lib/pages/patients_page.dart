@@ -50,7 +50,9 @@ class _PatientsPageState extends State<PatientsPage> {
       final matchesName = name.contains(searchName.toLowerCase());
 
       bool matchesDate = true;
-      final dateStr = patient['lastConsultationDate'];
+      final lastConsult = patient['lastConsultation'];
+      final dateStr = lastConsult != null ? lastConsult['startDate'] : null;
+
       if (filterDate != 'Todas' && dateStr != null) {
         final consultDate = DateTime.tryParse(dateStr);
         if (consultDate != null) {
@@ -70,6 +72,11 @@ class _PatientsPageState extends State<PatientsPage> {
 
       return matchesName && matchesDate;
     }).toList();
+  }
+
+  String _formatCpf(String rawCpf) {
+    if (rawCpf.length != 11) return rawCpf;
+    return '${rawCpf.substring(0, 3)}.${rawCpf.substring(3, 6)}.${rawCpf.substring(6, 9)}-${rawCpf.substring(9)}';
   }
 
   @override
@@ -145,20 +152,27 @@ class _PatientsPageState extends State<PatientsPage> {
                                 final name = patient['name'] ?? 'Sem nome';
                                 final phone = patient['phone'] ?? '---';
                                 final email = patient['email'] ?? '---';
-                                final dateStr = patient['lastConsultationDate'];
+                                final cpf = patient['cpf'] ?? '---';
                                 String lastConsultStr = '---';
 
-                                if (dateStr != null) {
-                                  final dt = DateTime.tryParse(dateStr);
-                                  if (dt != null) {
+                                // Agora pegamos diretamente a última consulta
+                                final lastConsult = patient['lastConsultation'];
+
+                                if (lastConsult != null) {
+                                  final lastDate = DateTime.tryParse(
+                                    lastConsult['startDate'],
+                                  );
+                                  if (lastDate != null) {
                                     lastConsultStr =
-                                        '${dt.day.toString().padLeft(2, '0')}/'
-                                        '${dt.month.toString().padLeft(2, '0')}/'
-                                        '${dt.year}';
+                                        '${lastDate.day.toString().padLeft(2, '0')}/${lastDate.month.toString().padLeft(2, '0')}/${lastDate.year}';
                                   }
                                 }
 
                                 return Card(
+                                  margin: const EdgeInsets.symmetric(
+                                    vertical: 4,
+                                    horizontal: 4,
+                                  ),
                                   color:
                                       Theme.of(context).brightness ==
                                               Brightness.dark
@@ -170,31 +184,118 @@ class _PatientsPageState extends State<PatientsPage> {
                                           )
                                           : const Color.fromARGB(
                                             255,
-                                            209,
-                                            209,
-                                            209,
+                                            230,
+                                            230,
+                                            230,
                                           ),
-                                  margin: const EdgeInsets.symmetric(
-                                    vertical: 6,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: ListTile(
-                                    title: Text(name),
-                                    subtitle: Column(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                    child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        Text('Telefone: $phone'),
-                                        Text('Email: $email'),
+                                        // Nome
                                         Text(
-                                          'Última consulta: $lastConsultStr',
+                                          name,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 15,
+                                          ),
+                                        ),
+                                        const Divider(height: 10),
+
+                                        // Linha 1: Email (esquerda) e CPF (direita)
+                                        Row(
+                                          children: [
+                                            const Text('Email: '),
+                                            Expanded(
+                                              child: GestureDetector(
+                                                onTap: () {
+                                                  showDialog(
+                                                    context: context,
+                                                    builder:
+                                                        (_) => AlertDialog(
+                                                          title: const Text(
+                                                            'Email completo',
+                                                          ),
+                                                          content:
+                                                              SelectableText(
+                                                                email,
+                                                              ),
+                                                          actions: [
+                                                            TextButton(
+                                                              onPressed:
+                                                                  () =>
+                                                                      Navigator.pop(
+                                                                        context,
+                                                                      ),
+                                                              child: const Text(
+                                                                'Fechar',
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                  );
+                                                },
+                                                child: Align(
+                                                  alignment:
+                                                      Alignment
+                                                          .centerLeft, // alinha o Tooltip à esquerda
+                                                  child: Tooltip(
+                                                    message: email,
+                                                    preferBelow:
+                                                        false,
+                                                    child: Text(
+                                                      email,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      softWrap: false,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text('CPF: ${_formatCpf(cpf)}'),
+                                          ],
+                                        ),
+
+                                        const SizedBox(height: 4),
+
+                                        // Linha 2: Telefone (esquerda) e Última consulta (direita)
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: SelectableText(
+                                                'Telefone: $phone',
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'Última consulta: $lastConsultStr',
+                                            ),
+                                          ],
+                                        ),
+
+                                        const SizedBox(height: 4),
+
+                                        // Botão "Abrir Detalhes"
+                                        Align(
+                                          alignment: Alignment.centerRight,
+                                          child: TextButton(
+                                            onPressed: () {
+                                              // abrir detalhes
+                                            },
+                                            child: const Text('Abrir Detalhes'),
+                                          ),
                                         ),
                                       ],
-                                    ),
-                                    trailing: TextButton(
-                                      onPressed: () {
-                                        // abrir detalhes
-                                      },
-                                      child: const Text('Abrir Detalhes'),
                                     ),
                                   ),
                                 );
