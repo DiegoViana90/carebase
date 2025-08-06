@@ -98,24 +98,27 @@ class _ConsultationsPageState extends State<ConsultationsPage> {
     }
   }
 
-Color _getColorByConsultationCount(int count) {
-  const maxConsultations = 10;
+  Color _getColorByConsultationCount(int count) {
+    const maxConsultations = 10;
 
-  if (count == 0) return Colors.green[100]!;
+    if (count == 0) return Colors.green[100]!;
 
-  final ratio = (count / maxConsultations).clamp(0.0, 1.0);
+    final ratio = (count / maxConsultations).clamp(0.0, 1.0);
 
-  // Interpolação de cor: verde -> amarelo -> vermelho
-  // Verde (#A5D6A7), Amarelo (#FFF176), Vermelho (#EF9A9A)
-  if (ratio < 0.5) {
-    // Verde para Amarelo
-    return Color.lerp(Colors.green[300], Colors.yellow[300], ratio * 2)!;
-  } else {
-    // Amarelo para Vermelho
-    return Color.lerp(Colors.yellow[300], Colors.red[300], (ratio - 0.5) * 2)!;
+    // Interpolação de cor: verde -> amarelo -> vermelho
+    // Verde (#A5D6A7), Amarelo (#FFF176), Vermelho (#EF9A9A)
+    if (ratio < 0.5) {
+      // Verde para Amarelo
+      return Color.lerp(Colors.green[300], Colors.yellow[300], ratio * 2)!;
+    } else {
+      // Amarelo para Vermelho
+      return Color.lerp(
+        Colors.yellow[300],
+        Colors.red[300],
+        (ratio - 0.5) * 2,
+      )!;
+    }
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -199,10 +202,16 @@ Color _getColorByConsultationCount(int count) {
                                 children: [
                                   Text(
                                     DateFormat('dd/MM/yy').format(date),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontWeight: FontWeight.bold,
+                                      color:
+                                          Theme.of(context).brightness ==
+                                                  Brightness.dark
+                                              ? Colors.black
+                                              : null, // Usa a cor padrão no tema claro
                                     ),
                                   ),
+
                                   const Spacer(),
                                   Center(
                                     child: Icon(
