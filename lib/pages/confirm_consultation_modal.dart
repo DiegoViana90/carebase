@@ -108,7 +108,7 @@ class _ConfirmConsultationModalState extends State<ConfirmConsultationModal> {
               ),
               ElevatedButton(
                 onPressed: () async {
-                  Navigator.pop(context); // Fecha confirmação
+                  Navigator.pop(context); // Fecha o ConfirmConsultationModal
 
                   final first = widget.selectedTimes.first;
                   final last = widget.selectedTimes.last;
@@ -141,7 +141,13 @@ class _ConfirmConsultationModalState extends State<ConfirmConsultationModal> {
                     );
 
                     if (mounted) {
-                      Navigator.pop(context); // Fecha modal principal
+                      Navigator.of(
+                        context,
+                      ).pop(); // Fecha o ConfirmConsultationModal
+                      Navigator.of(context).pop(
+                        true,
+                      ); // Fecha o ScheduleConsultationModal e sinaliza sucesso
+
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Consulta agendada com sucesso!'),
@@ -150,14 +156,19 @@ class _ConfirmConsultationModalState extends State<ConfirmConsultationModal> {
                     }
                   } catch (e) {
                     if (mounted) {
-                      Navigator.pop(context); // Fecha modal principal
+                      Navigator.of(
+                        context,
+                      ).pop(); // Fecha o ConfirmConsultationModal
+                      Navigator.of(
+                        context,
+                      ).pop(); // Fecha o ScheduleConsultationModal (sem sucesso)
+
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('Erro ao agendar consulta: $e')),
                       );
                     }
                   }
                 },
-
                 child: const Text('Agendar'),
               ),
             ],
