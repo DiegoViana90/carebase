@@ -4,7 +4,7 @@ import 'package:carebase/pages/confirm_consultation_modal.dart';
 
 class ScheduleConsultationModal extends StatefulWidget {
   final DateTime date;
-  final List<Map<String, DateTime>> occupiedSlots;
+  final List<Map<String, dynamic>> occupiedSlots;
 
   const ScheduleConsultationModal({
     super.key,
@@ -20,7 +20,8 @@ class ScheduleConsultationModal extends StatefulWidget {
 class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
   List<TimeOfDay> availableTimes = [];
   List<TimeOfDay> selectedTimes = [];
-  Set<String> occupiedSet = {};
+  Map<String, Map<String, dynamic>> occupiedMap = {};
+
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -44,14 +45,16 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
 
   void _mapOccupiedSlots() {
     for (final slot in widget.occupiedSlots) {
-      final start = DateTime.parse(slot['start']!.toString()).toLocal();
-      final end = DateTime.parse(slot['end']!.toString()).toLocal();
+      final start = (slot['start'] as DateTime).toLocal();
+      final end = (slot['end'] as DateTime).toLocal();
+      final patient = slot['patient'] ?? 'Indisponível';
+      final color = slot['color'] ?? Colors.red;
 
       DateTime current = start;
       while (!current.isAfter(end.subtract(const Duration(minutes: 1)))) {
         final t = TimeOfDay.fromDateTime(current);
         final key = _keyFromTime(t);
-        occupiedSet.add(key);
+        occupiedMap[key] = {'patient': patient, 'color': color};
         current = current.add(const Duration(minutes: 30));
       }
     }
@@ -144,7 +147,7 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
 
   bool _isSelectable(TimeOfDay time) {
     final key = _keyFromTime(time);
-    if (occupiedSet.contains(key)) return false;
+    if (occupiedMap.containsKey(key)) return false;
 
     if (selectedTimes.isEmpty) return true;
 
@@ -179,12 +182,16 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
               final time = availableTimes[index];
               final timeKey = _keyFromTime(time);
               final isSelected = selectedTimes.contains(time);
-              final isOccupied = occupiedSet.contains(timeKey);
+              final occupancy = occupiedMap[timeKey];
+              final isOccupied = occupancy != null;
+              final patientName = occupancy?['patient'];
+              final occupiedColor = occupancy?['color'] as Color?;
+
               final isEnabled = _isSelectable(time);
 
               final textColor =
                   isOccupied
-                      ? Colors.red
+                      ? Colors.white
                       : isSelected
                       ? Theme.of(context).colorScheme.primary
                       : isEnabled
@@ -193,14 +200,14 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
 
               final backgroundColor =
                   isOccupied
-                      ? Colors.red[100]
+                      ? occupiedColor ?? Colors.red
                       : isSelected
                       ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
                       : Colors.transparent;
 
               final borderColor =
                   isOccupied
-                      ? Colors.red
+                      ? (occupiedColor ?? Colors.red).withOpacity(0.7)
                       : isSelected
                       ? Theme.of(context).colorScheme.primary
                       : Colors.grey.shade300;
@@ -218,13 +225,19 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
                     vertical: 12,
                     horizontal: 16,
                   ),
-                  child: Text(
-                    _formatTime(time),
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: textColor,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isOccupied
+                            ? '${_formatTime(time)} - $patientName'
+                            : _formatTime(time),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: textColor,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               );

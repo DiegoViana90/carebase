@@ -23,7 +23,7 @@ class _ConsultationsPageState extends State<ConsultationsPage> {
 
   final List<String> months = List.generate(
     12,
-    (i) => DateFormat.MMMM().format(DateTime(0, i + 1)),
+    (i) => DateFormat.MMMM('pt_BR').format(DateTime(0, i + 1)),
   );
 
   @override
@@ -58,7 +58,13 @@ class _ConsultationsPageState extends State<ConsultationsPage> {
           // ✅ Usa apenas a data para agrupar
           final key = DateFormat('yyyy-MM-dd').format(start);
 
-          grouped.putIfAbsent(key, () => []).add({'start': start, 'end': end});
+          final patientName = c['patientName'] ?? 'Indisponível';
+
+          grouped.putIfAbsent(key, () => []).add({
+            'start': start,
+            'end': end,
+            'patient': patientName,
+          });
         } catch (e) {
           debugPrint('⚠️ Erro ao converter item: $e');
           continue;

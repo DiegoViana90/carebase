@@ -9,8 +9,12 @@ import 'pages/settings_page.dart';
 import 'pages/patients_page.dart';
 import 'pages/consultations_page.dart';
 import 'pages/finance_page.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('pt_BR', null);
+
   runApp(
     ChangeNotifierProvider(
       create: (_) => ThemeProvider(),
@@ -18,6 +22,7 @@ void main() {
     ),
   );
 }
+
 
 class CareBaseApp extends StatelessWidget {
   const CareBaseApp({super.key});
