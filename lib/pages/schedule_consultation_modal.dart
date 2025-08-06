@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:carebase/pages/confirm_consultation_modal.dart';
 
 class ScheduleConsultationModal extends StatefulWidget {
   final DateTime date;
@@ -203,8 +204,15 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
               selectedTimes.isEmpty
                   ? null
                   : () {
-                    // TODO: Ação de agendamento com `selectedTimes`
-                    Navigator.pop(context);
+                    showDialog(
+                      context: context,
+                      builder:
+                          (_) => ConfirmConsultationModal(
+                            selectedTimes: selectedTimes,
+                            availableTimes: availableTimes,
+                            date: widget.date,
+                          ),
+                    );
                   },
           icon: const Icon(Icons.add),
           label: const Text('Agendar'),

@@ -15,10 +15,7 @@ class PatientService {
     final url = Uri.parse('${AppConfig.apiBaseUrl}/Patients');
     final response = await http.get(
       url,
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Accept': 'application/json',
-      },
+      headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
     );
 
     if (response.statusCode == 200) {
@@ -30,6 +27,33 @@ class PatientService {
     } else {
       final error = jsonDecode(response.body);
       throw Exception(error['message'] ?? 'Erro ao buscar pacientes.');
+    }
+  }
+
+  static Future<Map<String, dynamic>?> fetchPatientByCpf(String cpf) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+
+    if (token == null) {
+      throw Exception('Token de autenticação não encontrado.');
+    }
+
+    final url = Uri.parse('${AppConfig.apiBaseUrl}/Patients/cpf/$cpf');
+    final response = await http.get(
+      url,
+      headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      return json['data'] as Map<String, dynamic>;
+    } else if (response.statusCode == 404) {
+      return null; // paciente não encontrado
+    } else if (response.statusCode == 401) {
+      throw Exception('Sessão expirada. Faça login novamente.');
+    } else {
+      final error = jsonDecode(response.body);
+      throw Exception(error['message'] ?? 'Erro ao buscar paciente.');
     }
   }
 
