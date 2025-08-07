@@ -1,3 +1,4 @@
+import 'package:carebase/pages/view_consultation_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:carebase/pages/confirm_consultation_modal.dart';
@@ -213,7 +214,40 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
                       : Colors.grey.shade300;
 
               return GestureDetector(
-                onTap: isEnabled ? () => _toggleTimeSelection(time) : null,
+                onTap: () {
+                  if (occupiedMap.containsKey(timeKey)) {
+                    final slot = widget.occupiedSlots.firstWhere((s) {
+                      final start = s['start'] as DateTime;
+                      final end = s['end'] as DateTime;
+
+                      final clickedDateTime = DateTime(
+                        widget.date.year,
+                        widget.date.month,
+                        widget.date.day,
+                        time.hour,
+                        time.minute,
+                      );
+
+                      return !clickedDateTime.isBefore(start) &&
+                          clickedDateTime.isBefore(end);
+                    }, orElse: () => {});
+
+                    if (slot.isNotEmpty) {
+                      showDialog(
+                        context: context,
+                        builder:
+                            (_) => ViewConsultationModal(
+                              patient: slot['patient'] ?? 'Desconhecido',
+                              start: slot['start'],
+                              end: slot['end'],
+                            ),
+                      );
+                    }
+                  } else if (isEnabled) {
+                    _toggleTimeSelection(time);
+                  }
+                },
+
                 child: Container(
                   margin: const EdgeInsets.symmetric(vertical: 4),
                   decoration: BoxDecoration(
@@ -232,10 +266,7 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
                         isOccupied
                             ? '${_formatTime(time)} - $patientName'
                             : _formatTime(time),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: textColor,
-                        ),
+                        style: TextStyle(fontSize: 12, color: textColor),
                       ),
                     ],
                   ),
