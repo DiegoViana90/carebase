@@ -65,12 +65,6 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
         current = current.add(const Duration(minutes: 30));
       }
     }
-
-    for (final slot in widget.occupiedSlots) {
-      debugPrint(
-        '🧪 slot start: ${slot['start']} | type: ${slot['start'].runtimeType}',
-      );
-    }
   }
 
   String _keyFromTime(TimeOfDay time) =>
