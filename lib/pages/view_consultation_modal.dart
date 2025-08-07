@@ -2,6 +2,7 @@ import 'package:carebase/core/services/consultation_service.dart';
 import 'package:carebase/enums/consult_status.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/services.dart';
 
 class ViewConsultationModal extends StatefulWidget {
   final int consultationId;
@@ -16,6 +17,8 @@ class ViewConsultationModal extends StatefulWidget {
   final String? texto1;
   final String? texto2;
   final String? texto3;
+  final double? amountPaid; // 👈 nov
+  final int? statusIndex; // 👈 novo
 
   const ViewConsultationModal({
     super.key,
@@ -29,6 +32,8 @@ class ViewConsultationModal extends StatefulWidget {
     this.texto1,
     this.texto2,
     this.texto3,
+    this.amountPaid,     // 👈 novo
+    this.statusIndex,  
   });
 
   @override
@@ -43,8 +48,13 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
   late final TextEditingController _texto1Ctrl;
   late final TextEditingController _texto2Ctrl;
   late final TextEditingController _texto3Ctrl;
+  final TextEditingController _paidAmountCtrl = TextEditingController();
+  double _getNumericValue(String value) {
+    final cleaned = value.replaceAll('.', '').replaceAll(',', '.');
+    return double.tryParse(cleaned) ?? 0.0;
+  }
 
-  ConsultStatus? _status; // 👈 Status selecionado (enum)
+  ConsultStatus? _status;
 
   @override
   void initState() {
@@ -64,7 +74,25 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
     _texto2Ctrl = TextEditingController(text: widget.texto2 ?? '');
     _texto3Ctrl = TextEditingController(text: widget.texto3 ?? '');
 
-    _status = null;
+    // ✅ Se vier valor, preencher no campo de pagamento
+    final amount = widget.amountPaid;
+    if (amount != null) {
+      final formatter = NumberFormat.currency(
+        locale: 'pt_BR',
+        symbol: '',
+        decimalDigits: 2,
+      );
+      _paidAmountCtrl.text = formatter.format(amount);
+    }
+
+    // ✅ Se vier status numérico, converter em enum
+    final statusIndex = widget.statusIndex;
+    if (statusIndex != null) {
+      _status = ConsultStatus.values.firstWhere(
+        (s) => s.index == statusIndex,
+        orElse: () => ConsultStatus.agendado,
+      );
+    }
   }
 
   @override
@@ -75,6 +103,7 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
     _texto1Ctrl.dispose();
     _texto2Ctrl.dispose();
     _texto3Ctrl.dispose();
+    _paidAmountCtrl.dispose();
     super.dispose();
   }
 
@@ -107,35 +136,57 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
               Text('Término: ${formatter.format(widget.end)}'),
               const SizedBox(height: 16),
 
-              // 👇 Status Dropdown
-              DropdownButtonFormField<ConsultStatus>(
-                value: _status == ConsultStatus.agendado ? null : _status,
-                onChanged: (value) {
-                  setState(() {
-                    _status = value;
-                  });
-                },
-                decoration: const InputDecoration(
-                  labelText: 'Status da consulta',
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
+              // 👇 Status + Valor pago
+              Row(
+                children: [
+                  SizedBox(
+                    width: 200,
+                    child: DropdownButtonFormField<ConsultStatus>(
+                      value: _status == ConsultStatus.agendado ? null : _status,
+                      onChanged: (value) {
+                        setState(() {
+                          _status = value;
+                        });
+                      },
+                      decoration: const InputDecoration(
+                        labelText: 'Status da consulta',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                      ),
+                      hint: const Text('Agendado'),
+                      items:
+                          ConsultStatus.values
+                              .where((s) => s != ConsultStatus.agendado)
+                              .map(
+                                (status) => DropdownMenuItem(
+                                  value: status,
+                                  child: Text(_statusLabel(status)),
+                                ),
+                              )
+                              .toList(),
+                    ),
                   ),
-                ),
-                hint: const Text(
-                  'Agendado',
-                ), // 👈 Mostra "Agendado" se o value for null
-                items:
-                    ConsultStatus.values
-                        .where((status) => status != ConsultStatus.agendado)
-                        .map(
-                          (status) => DropdownMenuItem(
-                            value: status,
-                            child: Text(_statusLabel(status)),
-                          ),
-                        )
-                        .toList(),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 120,
+                    child: TextFormField(
+                      controller: _paidAmountCtrl,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [_currencyFormatter],
+                      decoration: const InputDecoration(
+                        labelText: 'R\$ Pago',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
 
               const SizedBox(height: 24),
@@ -179,6 +230,7 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
                                 ),
                           );
 
+                          // Atualiza os detalhes (detalhes da seção)
                           await ConsultationService.updateConsultationDetails(
                             consultationId: widget.consultationId,
                             titulo1: _titulo1Ctrl.text.trim(),
@@ -187,7 +239,8 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
                             texto1: _texto1Ctrl.text.trim(),
                             texto2: _texto2Ctrl.text.trim(),
                             texto3: _texto3Ctrl.text.trim(),
-                            // status: _status?.name, // ← descomente isso quando for salvar
+                            amountPaid: _getNumericValue(_paidAmountCtrl.text),
+                            status: _status?.name,
                           );
 
                           Navigator.pop(context); // fecha loader
@@ -199,6 +252,7 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
                           );
                         }
                       },
+
                       icon: const Icon(Icons.save),
                       label: const Text('Salvar'),
                     ),
@@ -266,7 +320,33 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
     );
   }
 
-  // 👇 Método pra mostrar label bonitinha do enum
+  final _currencyFormatter = TextInputFormatter.withFunction((
+    oldValue,
+    newValue,
+  ) {
+    String newText = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (newText.isEmpty) return newValue.copyWith(text: '');
+
+    // Limita o número de dígitos a 7 (9999999 centavos = 99999,99 reais)
+    if (newText.length > 7) {
+      newText = newText.substring(0, 7);
+    }
+
+    final number = double.parse(newText) / 100;
+    final formatter = NumberFormat.currency(
+      locale: 'pt_BR',
+      symbol: '',
+      decimalDigits: 2,
+    );
+    final newString = formatter.format(number);
+
+    return TextEditingValue(
+      text: newString,
+      selection: TextSelection.collapsed(offset: newString.length),
+    );
+  });
+
   String _statusLabel(ConsultStatus status) {
     switch (status) {
       case ConsultStatus.agendado:

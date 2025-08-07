@@ -51,12 +51,17 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
       final end = (slot['end'] as DateTime).toLocal();
       final patient = slot['patient'] ?? 'Indisponível';
       final color = slot['color'] ?? Colors.red;
+      final status = slot['status']; // 👈 adiciona aqui
 
       DateTime current = start;
       while (!current.isAfter(end.subtract(const Duration(minutes: 1)))) {
         final t = TimeOfDay.fromDateTime(current);
         final key = _keyFromTime(t);
-        occupiedMap[key] = {'patient': patient, 'color': color};
+        occupiedMap[key] = {
+          'patient': patient,
+          'color': color,
+          'status': status, // 👈 aqui também
+        };
         current = current.add(const Duration(minutes: 30));
       }
     }
@@ -165,6 +170,37 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
         selectedTimes.contains(time);
   }
 
+  Widget _getStatusIcon(int? status) {
+    switch (status) {
+      case 0:
+        return const Icon(
+          Icons.event_note,
+          size: 16,
+          color: Colors.white,
+        ); // Agendado
+      case 1:
+        return const Icon(
+          Icons.check_circle,
+          size: 16,
+          color: Colors.white,
+        ); // Compareceu
+      case 2:
+        return const Icon(
+          Icons.cancel,
+          size: 16,
+          color: Colors.white,
+        ); // Não Compareceu
+      case 3:
+        return const Icon(
+          Icons.refresh,
+          size: 16,
+          color: Colors.white,
+        ); // Reagendado
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final formattedDate = DateFormat('dd/MM/yyyy').format(widget.date);
@@ -187,7 +223,13 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
               final occupancy = occupiedMap[timeKey];
               final isOccupied = occupancy != null;
               final patientName = occupancy?['patient'];
-              final occupiedColor = occupancy?['color'] as Color?;
+              final status = occupancy?['status'] as int?;
+              final occupiedColor = switch (status) {
+                1 => Colors.green, // Compareceu
+                2 => Colors.red, // Não Compareceu
+                3 => Colors.blueGrey, // Reagendado
+                _ => Colors.orange, // Agendado ou outro
+              };
 
               final isEnabled = _isSelectable(time);
 
@@ -254,7 +296,7 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
 
                         Navigator.pop(context); // fecha o loader
 
-                        await showDialog(
+                        final result = await showDialog<bool>(
                           context: context,
                           builder:
                               (_) => ViewConsultationModal(
@@ -268,8 +310,18 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
                                 texto1: details?['texto1'],
                                 texto2: details?['texto2'],
                                 texto3: details?['texto3'],
+                                amountPaid:
+                                    details?['consultation']?['amountPaid']
+                                        ?.toDouble(),
+                                statusIndex:
+                                    details?['consultation']?['status'],
                               ),
                         );
+
+                        // 👇 Se salvou, fecha este modal também com `true`
+                        if (result == true) {
+                          Navigator.pop(context, true);
+                        }
                       } catch (e) {
                         Navigator.pop(context); // fecha o loader
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -298,11 +350,28 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        isOccupied
-                            ? '${_formatTime(time)} - $patientName'
-                            : _formatTime(time),
-                        style: TextStyle(fontSize: 12, color: textColor),
+                      Row(
+                        children: [
+                          Text(
+                            _formatTime(time),
+                            style: TextStyle(fontSize: 12, color: textColor),
+                          ),
+                          const SizedBox(width: 6),
+                          if (isOccupied) ...[
+                            _getStatusIcon(occupancy?['status']),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                '- $patientName',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: textColor,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ],
                   ),

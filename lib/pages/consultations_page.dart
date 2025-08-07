@@ -63,6 +63,7 @@ class _ConsultationsPageState extends State<ConsultationsPage> {
             'texto1': c['texto1'],
             'texto2': c['texto2'],
             'texto3': c['texto3'],
+            'status': c['status'], // 👈 ADICIONAR ISSO
           });
         } catch (e) {
           debugPrint('⚠️ Erro ao converter item: $e');

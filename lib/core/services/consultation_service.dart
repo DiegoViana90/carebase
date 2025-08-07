@@ -49,6 +49,8 @@ class ConsultationService {
     required String texto1,
     required String texto2,
     required String texto3,
+    double? amountPaid,
+    String? status,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
@@ -58,13 +60,15 @@ class ConsultationService {
     }
 
     final body = {
-      'consultationId': consultationId, // 👈 ESSENCIAL!
+      'consultationId': consultationId,
       'titulo1': titulo1,
       'titulo2': titulo2,
       'titulo3': titulo3,
       'texto1': texto1,
       'texto2': texto2,
       'texto3': texto3,
+      if (amountPaid != null) 'amountPaid': amountPaid,
+      if (status != null) 'status': status,
     };
 
     final response = await http.put(
@@ -114,6 +118,37 @@ class ConsultationService {
     } else {
       final json = jsonDecode(response.body);
       throw Exception(json['message'] ?? 'Erro ao buscar consultas.');
+    }
+  }
+
+  static Future<void> updateConsultationMainData({
+    required int consultationId,
+    required double amountPaid,
+    required String? status,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+
+    if (token == null) {
+      throw Exception('Token de autenticação não encontrado.');
+    }
+
+    final body = {'amountPaid': amountPaid, 'status': status};
+
+    final response = await http.put(
+      Uri.parse('${AppConfig.apiBaseUrl}/Consultations/$consultationId'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode != 200) {
+      final json = jsonDecode(response.body);
+      throw Exception(
+        json['message'] ?? 'Erro ao atualizar dados da consulta.',
+      );
     }
   }
 
