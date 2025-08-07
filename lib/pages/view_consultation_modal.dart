@@ -47,17 +47,6 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
   void initState() {
     super.initState();
 
-    print('🧠 consultationId recebido: ${widget.consultationId}');
-    print('🧾 paciente: ${widget.patient}');
-    print('📅 início: ${widget.start}');
-    print('📅 fim: ${widget.end}');
-    print('📌 titulo1: ${widget.titulo1}');
-    print('📌 titulo2: ${widget.titulo2}');
-    print('📌 titulo3: ${widget.titulo3}');
-    print('📝 texto1: ${widget.texto1}');
-    print('📝 texto2: ${widget.texto2}');
-    print('📝 texto3: ${widget.texto3}');
-
     _titulo1Ctrl = TextEditingController(
       text: widget.titulo1 ?? 'Ficha de Anamnese',
     );
@@ -143,8 +132,6 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
                     ElevatedButton.icon(
                       onPressed: () async {
                         try {
-                          print('💾 Salvando dados...');
-                          print('🧠 consultationId: ${widget.consultationId}');
 
                           showDialog(
                             context: context,
@@ -164,13 +151,10 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
                             texto3: _texto3Ctrl.text.trim(),
                           );
 
-                          print('✅ Dados salvos com sucesso!');
-
                           Navigator.pop(context); // fecha o loader
                           Navigator.pop(context, true); // fecha modal com sucesso
                         } catch (e) {
                           Navigator.pop(context); // fecha o loader
-                          print('❌ Erro ao salvar: $e');
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('Erro ao salvar: $e')),
                           );
