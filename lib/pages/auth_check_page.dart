@@ -29,7 +29,14 @@ class _AuthCheckPageState extends State<AuthCheckPage>
   }
 
   Future<void> _checkLogin() async {
-    final isLoggedIn = await AuthService.isLoggedIn();
+    bool isLoggedIn = false;
+
+    try {
+      isLoggedIn = await AuthService.isLoggedIn();
+    } catch (_) {
+      isLoggedIn = false;
+    }
+
     await Future.delayed(const Duration(seconds: 1));
 
     if (!mounted) return;

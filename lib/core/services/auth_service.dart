@@ -43,6 +43,17 @@ class AuthService {
 
   static Future<bool> isLoggedIn() async {
     final token = await getToken();
-    return token != null;
+    if (token == null) return false;
+
+    try {
+      final response = await http.get(
+        Uri.parse('${AppConfig.apiBaseUrl}/auth/me'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
   }
 }
