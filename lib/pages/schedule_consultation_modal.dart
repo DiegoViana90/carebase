@@ -275,9 +275,6 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
                           clickedDateTime.isBefore(end);
                     }, orElse: () => {});
 
-                    print('🔍 slot: $slot');
-                    print('🔍 slot consultationId: ${slot['consultationId']}');
-
                     if (slot.isNotEmpty) {
                       showDialog(
                         context: context,
