@@ -1,4 +1,5 @@
 import 'package:carebase/core/services/consultation_service.dart';
+import 'package:carebase/enums/consult_status.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -43,6 +44,8 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
   late final TextEditingController _texto2Ctrl;
   late final TextEditingController _texto3Ctrl;
 
+  ConsultStatus? _status; // 👈 Status selecionado (enum)
+
   @override
   void initState() {
     super.initState();
@@ -60,6 +63,8 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
     _texto1Ctrl = TextEditingController(text: widget.texto1 ?? '');
     _texto2Ctrl = TextEditingController(text: widget.texto2 ?? '');
     _texto3Ctrl = TextEditingController(text: widget.texto3 ?? '');
+
+    _status = null;
   }
 
   @override
@@ -100,6 +105,39 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
               Text('Paciente: ${widget.patient}'),
               Text('Início: ${formatter.format(widget.start)}'),
               Text('Término: ${formatter.format(widget.end)}'),
+              const SizedBox(height: 16),
+
+              // 👇 Status Dropdown
+              DropdownButtonFormField<ConsultStatus>(
+                value: _status == ConsultStatus.agendado ? null : _status,
+                onChanged: (value) {
+                  setState(() {
+                    _status = value;
+                  });
+                },
+                decoration: const InputDecoration(
+                  labelText: 'Status da consulta',
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                ),
+                hint: const Text(
+                  'Agendado',
+                ), // 👈 Mostra "Agendado" se o value for null
+                items:
+                    ConsultStatus.values
+                        .where((status) => status != ConsultStatus.agendado)
+                        .map(
+                          (status) => DropdownMenuItem(
+                            value: status,
+                            child: Text(_statusLabel(status)),
+                          ),
+                        )
+                        .toList(),
+              ),
+
               const SizedBox(height: 24),
 
               // Blocos editáveis
@@ -132,13 +170,13 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
                     ElevatedButton.icon(
                       onPressed: () async {
                         try {
-
                           showDialog(
                             context: context,
                             barrierDismissible: false,
-                            builder: (_) => const Center(
-                              child: CircularProgressIndicator(),
-                            ),
+                            builder:
+                                (_) => const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
                           );
 
                           await ConsultationService.updateConsultationDetails(
@@ -149,12 +187,13 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
                             texto1: _texto1Ctrl.text.trim(),
                             texto2: _texto2Ctrl.text.trim(),
                             texto3: _texto3Ctrl.text.trim(),
+                            // status: _status?.name, // ← descomente isso quando for salvar
                           );
 
-                          Navigator.pop(context); // fecha o loader
-                          Navigator.pop(context, true); // fecha modal com sucesso
+                          Navigator.pop(context); // fecha loader
+                          Navigator.pop(context, true); // fecha modal
                         } catch (e) {
-                          Navigator.pop(context); // fecha o loader
+                          Navigator.pop(context); // fecha loader
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('Erro ao salvar: $e')),
                           );
@@ -225,5 +264,19 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
         ],
       ),
     );
+  }
+
+  // 👇 Método pra mostrar label bonitinha do enum
+  String _statusLabel(ConsultStatus status) {
+    switch (status) {
+      case ConsultStatus.agendado:
+        return 'Agendado';
+      case ConsultStatus.compareceu:
+        return 'Compareceu';
+      case ConsultStatus.naoCompareceu:
+        return 'Não compareceu';
+      case ConsultStatus.reagendado:
+        return 'Reagendado';
+    }
   }
 }

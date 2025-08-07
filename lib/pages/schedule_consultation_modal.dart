@@ -1,3 +1,4 @@
+import 'package:carebase/core/services/consultation_service.dart';
 import 'package:carebase/pages/view_consultation_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -214,7 +215,7 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
                       : Colors.grey.shade300;
 
               return GestureDetector(
-                onTap: () {
+                onTap: () async {
                   if (occupiedMap.containsKey(timeKey)) {
                     final slot = widget.occupiedSlots.firstWhere((s) {
                       final start = s['start'] as DateTime;
@@ -238,21 +239,45 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
                     if (slot.isNotEmpty) {
                       showDialog(
                         context: context,
+                        barrierDismissible: false,
                         builder:
-                            (_) => ViewConsultationModal(
-                              consultationId:
-                                  slot['consultationId'], // 👈 precisa ser inteiro
-                              patient: slot['patientName'] ?? 'Desconhecido',
-                              start: slot['start'],
-                              end: slot['end'],
-                              titulo1: slot['titulo1'],
-                              titulo2: slot['titulo2'],
-                              titulo3: slot['titulo3'],
-                              texto1: slot['texto1'],
-                              texto2: slot['texto2'],
-                              texto3: slot['texto3'],
+                            (_) => const Center(
+                              child: CircularProgressIndicator(),
                             ),
                       );
+
+                      try {
+                        final details =
+                            await ConsultationService.fetchConsultationDetails(
+                              slot['consultationId'],
+                            );
+
+                        Navigator.pop(context); // fecha o loader
+
+                        await showDialog(
+                          context: context,
+                          builder:
+                              (_) => ViewConsultationModal(
+                                consultationId: slot['consultationId'],
+                                patient: slot['patientName'] ?? 'Desconhecido',
+                                start: slot['start'],
+                                end: slot['end'],
+                                titulo1: details?['titulo1'],
+                                titulo2: details?['titulo2'],
+                                titulo3: details?['titulo3'],
+                                texto1: details?['texto1'],
+                                texto2: details?['texto2'],
+                                texto3: details?['texto3'],
+                              ),
+                        );
+                      } catch (e) {
+                        Navigator.pop(context); // fecha o loader
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Erro ao buscar detalhes: $e'),
+                          ),
+                        );
+                      }
                     }
                   } else if (isEnabled) {
                     _toggleTimeSelection(time);

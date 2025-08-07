@@ -58,6 +58,7 @@ class ConsultationService {
     }
 
     final body = {
+      'consultationId': consultationId, // 👈 ESSENCIAL!
       'titulo1': titulo1,
       'titulo2': titulo2,
       'titulo3': titulo3,
@@ -67,7 +68,9 @@ class ConsultationService {
     };
 
     final response = await http.put(
-      Uri.parse('${AppConfig.apiBaseUrl}/Consultations/$consultationId'),
+      Uri.parse(
+        '${AppConfig.apiBaseUrl}/Consultations/$consultationId/details',
+      ),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -111,6 +114,37 @@ class ConsultationService {
     } else {
       final json = jsonDecode(response.body);
       throw Exception(json['message'] ?? 'Erro ao buscar consultas.');
+    }
+  }
+
+  static Future<Map<String, dynamic>?> fetchConsultationDetails(
+    int consultationId,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+
+    if (token == null) {
+      throw Exception('Token de autenticação não encontrado.');
+    }
+
+    final response = await http.get(
+      Uri.parse(
+        '${AppConfig.apiBaseUrl}/Consultations/$consultationId/details',
+      ),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      return json['data'];
+    } else if (response.statusCode == 404) {
+      return null;
+    } else {
+      final json = jsonDecode(response.body);
+      throw Exception(json['message'] ?? 'Erro ao buscar detalhes.');
     }
   }
 }
