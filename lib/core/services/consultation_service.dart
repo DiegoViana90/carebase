@@ -41,6 +41,46 @@ class ConsultationService {
     }
   }
 
+  static Future<void> updateConsultationDetails({
+    required int consultationId,
+    required String titulo1,
+    required String titulo2,
+    required String titulo3,
+    required String texto1,
+    required String texto2,
+    required String texto3,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+
+    if (token == null) {
+      throw Exception('Token de autenticação não encontrado.');
+    }
+
+    final body = {
+      'titulo1': titulo1,
+      'titulo2': titulo2,
+      'titulo3': titulo3,
+      'texto1': texto1,
+      'texto2': texto2,
+      'texto3': texto3,
+    };
+
+    final response = await http.put(
+      Uri.parse('${AppConfig.apiBaseUrl}/Consultations/$consultationId'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode != 200) {
+      final json = jsonDecode(response.body);
+      throw Exception(json['message'] ?? 'Erro ao atualizar consulta.');
+    }
+  }
+
   static Future<List<Map<String, dynamic>>> fetchAllConsultations() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');

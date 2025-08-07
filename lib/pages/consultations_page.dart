@@ -16,7 +16,7 @@ class _ConsultationsPageState extends State<ConsultationsPage> {
   late int selectedMonth;
   final currentYear = DateTime.now().year;
 
-  Map<String, List<Map<String, DateTime>>> consultationsByDate = {};
+  Map<String, List<Map<String, dynamic>>> consultationsByDate = {};
   bool isLoading = true;
 
   List<int> get years => List.generate(5, (i) => currentYear - i);
@@ -25,7 +25,6 @@ class _ConsultationsPageState extends State<ConsultationsPage> {
     12,
     (i) => DateFormat.MMMM('pt_BR').format(DateTime(0, i + 1)),
   );
-
   @override
   void initState() {
     super.initState();
@@ -40,34 +39,33 @@ class _ConsultationsPageState extends State<ConsultationsPage> {
 
     try {
       final result = await ConsultationService.fetchAllConsultations();
-
-      Map<String, List<Map<String, DateTime>>> grouped = {};
+      Map<String, List<Map<String, dynamic>>> grouped = {};
 
       for (final c in result) {
         try {
-          // ✅ Garante que campos existam
           final startRaw = c['startDate'];
           final endRaw = c['endDate'];
-
           if (startRaw == null || endRaw == null) continue;
 
-          // ✅ Converte para DateTime e para local time
           final start = DateTime.parse(startRaw.toString()).toLocal();
           final end = DateTime.parse(endRaw.toString()).toLocal();
-
-          // ✅ Usa apenas a data para agrupar
           final key = DateFormat('yyyy-MM-dd').format(start);
-
           final patientName = c['patientName'] ?? 'Indisponível';
 
           grouped.putIfAbsent(key, () => []).add({
             'start': start,
             'end': end,
             'patient': patientName,
+            'consultationId': c['consultationId'],
+            'titulo1': c['titulo1'],
+            'titulo2': c['titulo2'],
+            'titulo3': c['titulo3'],
+            'texto1': c['texto1'],
+            'texto2': c['texto2'],
+            'texto3': c['texto3'],
           });
         } catch (e) {
           debugPrint('⚠️ Erro ao converter item: $e');
-          continue;
         }
       }
 
@@ -93,10 +91,7 @@ class _ConsultationsPageState extends State<ConsultationsPage> {
     final result = await showDialog(
       context: context,
       builder:
-          (_) => ScheduleConsultationModal(
-            date: date,
-            occupiedSlots: occupied, // <-- passa start e end completos
-          ),
+          (_) => ScheduleConsultationModal(date: date, occupiedSlots: occupied),
     );
 
     if (result == true) {
@@ -106,18 +101,12 @@ class _ConsultationsPageState extends State<ConsultationsPage> {
 
   Color _getColorByConsultationCount(int count) {
     const maxConsultations = 10;
-
     if (count == 0) return Colors.green[100]!;
 
     final ratio = (count / maxConsultations).clamp(0.0, 1.0);
-
-    // Interpolação de cor: verde -> amarelo -> vermelho
-    // Verde (#A5D6A7), Amarelo (#FFF176), Vermelho (#EF9A9A)
     if (ratio < 0.5) {
-      // Verde para Amarelo
       return Color.lerp(Colors.green[300], Colors.yellow[300], ratio * 2)!;
     } else {
-      // Amarelo para Vermelho
       return Color.lerp(
         Colors.yellow[300],
         Colors.red[300],
@@ -214,10 +203,9 @@ class _ConsultationsPageState extends State<ConsultationsPage> {
                                           Theme.of(context).brightness ==
                                                   Brightness.dark
                                               ? Colors.black
-                                              : null, // Usa a cor padrão no tema claro
+                                              : null,
                                     ),
                                   ),
-
                                   const Spacer(),
                                   Center(
                                     child: Icon(

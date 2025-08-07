@@ -232,14 +232,25 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
                           clickedDateTime.isBefore(end);
                     }, orElse: () => {});
 
+                    print('🔍 slot: $slot');
+                    print('🔍 slot consultationId: ${slot['consultationId']}');
+
                     if (slot.isNotEmpty) {
                       showDialog(
                         context: context,
                         builder:
                             (_) => ViewConsultationModal(
-                              patient: slot['patient'] ?? 'Desconhecido',
+                              consultationId:
+                                  slot['consultationId'], // 👈 precisa ser inteiro
+                              patient: slot['patientName'] ?? 'Desconhecido',
                               start: slot['start'],
                               end: slot['end'],
+                              titulo1: slot['titulo1'],
+                              titulo2: slot['titulo2'],
+                              titulo3: slot['titulo3'],
+                              texto1: slot['texto1'],
+                              texto2: slot['texto2'],
+                              texto3: slot['texto3'],
                             ),
                       );
                     }

@@ -1,7 +1,9 @@
+import 'package:carebase/core/services/consultation_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class ViewConsultationModal extends StatefulWidget {
+  final int consultationId;
   final String patient;
   final DateTime start;
   final DateTime end;
@@ -16,6 +18,7 @@ class ViewConsultationModal extends StatefulWidget {
 
   const ViewConsultationModal({
     super.key,
+    required this.consultationId,
     required this.patient,
     required this.start,
     required this.end,
@@ -44,9 +47,26 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
   void initState() {
     super.initState();
 
-    _titulo1Ctrl = TextEditingController(text: widget.titulo1 ?? 'Ficha de Anamnese: ');
-    _titulo2Ctrl = TextEditingController(text: widget.titulo2 ?? 'Procedimentos Realizados: ');
-    _titulo3Ctrl = TextEditingController(text: widget.titulo3 ?? 'Mais Informações: ');
+    print('🧠 consultationId recebido: ${widget.consultationId}');
+    print('🧾 paciente: ${widget.patient}');
+    print('📅 início: ${widget.start}');
+    print('📅 fim: ${widget.end}');
+    print('📌 titulo1: ${widget.titulo1}');
+    print('📌 titulo2: ${widget.titulo2}');
+    print('📌 titulo3: ${widget.titulo3}');
+    print('📝 texto1: ${widget.texto1}');
+    print('📝 texto2: ${widget.texto2}');
+    print('📝 texto3: ${widget.texto3}');
+
+    _titulo1Ctrl = TextEditingController(
+      text: widget.titulo1 ?? 'Ficha de Anamnese',
+    );
+    _titulo2Ctrl = TextEditingController(
+      text: widget.titulo2 ?? 'Procedimentos Realizados',
+    );
+    _titulo3Ctrl = TextEditingController(
+      text: widget.titulo3 ?? 'Mais Informações',
+    );
 
     _texto1Ctrl = TextEditingController(text: widget.texto1 ?? '');
     _texto2Ctrl = TextEditingController(text: widget.texto2 ?? '');
@@ -58,7 +78,6 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
     _titulo1Ctrl.dispose();
     _titulo2Ctrl.dispose();
     _titulo3Ctrl.dispose();
-
     _texto1Ctrl.dispose();
     _texto2Ctrl.dispose();
     _texto3Ctrl.dispose();
@@ -84,7 +103,9 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
             children: [
               Text(
                 'Detalhes da Consulta',
-                style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
               Text('Paciente: ${widget.patient}'),
@@ -92,22 +113,21 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
               Text('Término: ${formatter.format(widget.end)}'),
               const SizedBox(height: 24),
 
-              // Campos empilhados
+              // Blocos editáveis
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
                       _buildEditableBlock(_titulo1Ctrl, _texto1Ctrl),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
                       _buildEditableBlock(_titulo2Ctrl, _texto2Ctrl),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
                       _buildEditableBlock(_titulo3Ctrl, _texto3Ctrl),
+                      const SizedBox(height: 40),
                     ],
                   ),
                 ),
               ),
-
-              const SizedBox(height: 24),
 
               // Botões
               Align(
@@ -121,23 +141,43 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
                     ),
                     const SizedBox(width: 12),
                     ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context, {
-                          'titulo1': _titulo1Ctrl.text.trim(),
-                          'titulo2': _titulo2Ctrl.text.trim(),
-                          'titulo3': _titulo3Ctrl.text.trim(),
-                          'texto1': _texto1Ctrl.text.trim(),
-                          'texto2': _texto2Ctrl.text.trim(),
-                          'texto3': _texto3Ctrl.text.trim(),
-                        });
+                      onPressed: () async {
+                        try {
+                          print('💾 Salvando dados...');
+                          print('🧠 consultationId: ${widget.consultationId}');
+
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (_) => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+
+                          await ConsultationService.updateConsultationDetails(
+                            consultationId: widget.consultationId,
+                            titulo1: _titulo1Ctrl.text.trim(),
+                            titulo2: _titulo2Ctrl.text.trim(),
+                            titulo3: _titulo3Ctrl.text.trim(),
+                            texto1: _texto1Ctrl.text.trim(),
+                            texto2: _texto2Ctrl.text.trim(),
+                            texto3: _texto3Ctrl.text.trim(),
+                          );
+
+                          print('✅ Dados salvos com sucesso!');
+
+                          Navigator.pop(context); // fecha o loader
+                          Navigator.pop(context, true); // fecha modal com sucesso
+                        } catch (e) {
+                          Navigator.pop(context); // fecha o loader
+                          print('❌ Erro ao salvar: $e');
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Erro ao salvar: $e')),
+                          );
+                        }
                       },
                       icon: const Icon(Icons.save),
                       label: const Text('Salvar'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      ),
                     ),
                   ],
                 ),
@@ -149,38 +189,57 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
     );
   }
 
-  Widget _buildEditableBlock(TextEditingController titleCtrl, TextEditingController contentCtrl) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextField(
-          controller: titleCtrl,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-          decoration: const InputDecoration(
-            hintText: 'Título da seção',
-            isDense: true,
-            border: InputBorder.none,
+  Widget _buildEditableBlock(
+    TextEditingController titleCtrl,
+    TextEditingController contentCtrl,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: titleCtrl,
+            maxLength: 100,
+            decoration: const InputDecoration(
+              hintText: 'Título da seção',
+              border: UnderlineInputBorder(),
+              isDense: true,
+              counterText: '',
+            ),
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
           ),
-        ),
-        const SizedBox(height: 6),
-        Card(
-          elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: SizedBox(
-              height: 150,
-              child: TextField(
-                controller: contentCtrl,
-                maxLines: null,
-                expands: true,
-                textAlignVertical: TextAlignVertical.top,
-                decoration: const InputDecoration.collapsed(hintText: 'Escreva aqui...'),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: SizedBox(
+                height: 160,
+                child: TextField(
+                  controller: contentCtrl,
+                  maxLines: null,
+                  expands: true,
+                  textAlignVertical: TextAlignVertical.top,
+                  decoration: const InputDecoration.collapsed(
+                    hintText: 'Escreva aqui...',
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
