@@ -17,7 +17,7 @@ class ViewConsultationModal extends StatefulWidget {
   final String? texto1;
   final String? texto2;
   final String? texto3;
-  final double? amountPaid; // 👈 nov
+  final double? amountPaid; // 👈 novo
   final int? statusIndex; // 👈 novo
 
   const ViewConsultationModal({
@@ -32,8 +32,8 @@ class ViewConsultationModal extends StatefulWidget {
     this.texto1,
     this.texto2,
     this.texto3,
-    this.amountPaid,     // 👈 novo
-    this.statusIndex,  
+    this.amountPaid,
+    this.statusIndex,
   });
 
   @override
@@ -49,6 +49,7 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
   late final TextEditingController _texto2Ctrl;
   late final TextEditingController _texto3Ctrl;
   final TextEditingController _paidAmountCtrl = TextEditingController();
+
   double _getNumericValue(String value) {
     final cleaned = value.replaceAll('.', '').replaceAll(',', '.');
     return double.tryParse(cleaned) ?? 0.0;
@@ -74,7 +75,7 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
     _texto2Ctrl = TextEditingController(text: widget.texto2 ?? '');
     _texto3Ctrl = TextEditingController(text: widget.texto3 ?? '');
 
-    // ✅ Se vier valor, preencher no campo de pagamento
+    // ✅ Preenche o valor pago, se vier
     final amount = widget.amountPaid;
     if (amount != null) {
       final formatter = NumberFormat.currency(
@@ -85,7 +86,7 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
       _paidAmountCtrl.text = formatter.format(amount);
     }
 
-    // ✅ Se vier status numérico, converter em enum
+    // ✅ Converte status numérico para enum, se vier
     final statusIndex = widget.statusIndex;
     if (statusIndex != null) {
       _status = ConsultStatus.values.firstWhere(
@@ -157,16 +158,15 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
                         ),
                       ),
                       hint: const Text('Agendado'),
-                      items:
-                          ConsultStatus.values
-                              .where((s) => s != ConsultStatus.agendado)
-                              .map(
-                                (status) => DropdownMenuItem(
-                                  value: status,
-                                  child: Text(_statusLabel(status)),
-                                ),
-                              )
-                              .toList(),
+                      items: ConsultStatus.values
+                          .where((s) => s != ConsultStatus.agendado)
+                          .map(
+                            (status) => DropdownMenuItem(
+                              value: status,
+                              child: Text(_statusLabel(status)),
+                            ),
+                          )
+                          .toList(),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -224,13 +224,11 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
                           showDialog(
                             context: context,
                             barrierDismissible: false,
-                            builder:
-                                (_) => const Center(
-                                  child: CircularProgressIndicator(),
-                                ),
+                            builder: (_) => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
                           );
 
-                          // Atualiza os detalhes (detalhes da seção)
                           await ConsultationService.updateConsultationDetails(
                             consultationId: widget.consultationId,
                             titulo1: _titulo1Ctrl.text.trim(),
@@ -252,7 +250,6 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
                           );
                         }
                       },
-
                       icon: const Icon(Icons.save),
                       label: const Text('Salvar'),
                     ),
@@ -270,6 +267,11 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
     TextEditingController titleCtrl,
     TextEditingController contentCtrl,
   ) {
+    // 👇 Ajuste de contraste no tema escuro para card branco
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final contentTextColor = isDark ? Colors.black87 : null; // claro segue padrão
+    final hintTextColor = isDark ? Colors.grey[600] : null;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Column(
@@ -289,7 +291,7 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
           const SizedBox(height: 8),
           Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Colors.white, // mantém card branco
               borderRadius: BorderRadius.circular(12),
               boxShadow: const [
                 BoxShadow(
@@ -308,8 +310,14 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
                   maxLines: null,
                   expands: true,
                   textAlignVertical: TextAlignVertical.top,
-                  decoration: const InputDecoration.collapsed(
+                  style: TextStyle(
+                    color: contentTextColor, // texto escuro no tema escuro
+                  ),
+                  decoration: InputDecoration.collapsed(
                     hintText: 'Escreva aqui...',
+                    hintStyle: TextStyle(
+                      color: hintTextColor, // hint com contraste
+                    ),
                   ),
                 ),
               ),

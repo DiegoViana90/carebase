@@ -57,21 +57,26 @@ class _AddPatientModalState extends State<AddPatientModal> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return AlertDialog(
+    // Altura fixa/responsiva do corpo do modal
+    final double bodyHeight = (MediaQuery.of(context).size.height * 0.6).clamp(
+      360.0,
+      440.0,
+    );
+
+    return Dialog(
+      insetPadding: const EdgeInsets.all(24),
       backgroundColor: theme.cardColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      contentPadding: const EdgeInsets.all(0),
-      content: LayoutBuilder(
-        builder: (context, constraints) {
-          final maxWidth =
-              constraints.maxWidth > 500 ? 500.0 : constraints.maxWidth;
-
-          return Container(
-            width: maxWidth,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: SizedBox(
+          height: bodyHeight, // 🔒 altura fixa do modal
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Título
                 Text(
                   'Novo Paciente',
                   style: theme.textTheme.titleMedium?.copyWith(
@@ -79,67 +84,78 @@ class _AddPatientModalState extends State<AddPatientModal> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                Form(
-                  key: _formKey,
+
+                // Conteúdo rolável
+                Expanded(
                   child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        _buildInputField(
-                          _nameController,
-                          'name',
-                          'Nome',
-                          theme,
-                          validator: validateName,
-                        ),
-                        _buildInputField(
-                          _cpfController,
-                          'cpf',
-                          'CPF',
-                          theme,
-                          keyboardType: TextInputType.number,
-                          validator: validateCpf,
-                        ),
-                        _buildInputField(
-                          _phoneController,
-                          'phone',
-                          'Telefone',
-                          theme,
-                          keyboardType: TextInputType.phone,
-                        ),
-                        _buildInputField(
-                          _emailController,
-                          'email',
-                          'Email',
-                          theme,
-                          keyboardType: TextInputType.emailAddress,
-                          validator: validateEmail,
-                        ),
-                        _buildInputField(
-                          _professionController,
-                          'profession',
-                          'Profissão',
-                          theme,
-                        ),
-                        if (_error != null) ...[
-                          const SizedBox(height: 10),
-                          Text(
-                            _error!,
-                            style: const TextStyle(color: Colors.red),
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).viewInsets.bottom,
+                    ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        children: [
+                          _buildInputField(
+                            _nameController,
+                            'name',
+                            'Nome',
+                            theme,
+                            validator: validateName,
                           ),
+                          _buildInputField(
+                            _cpfController,
+                            'cpf',
+                            'CPF',
+                            theme,
+                            keyboardType: TextInputType.number,
+                            validator: validateCpf,
+                          ),
+                          _buildInputField(
+                            _phoneController,
+                            'phone',
+                            'Telefone',
+                            theme,
+                            keyboardType: TextInputType.phone,
+                          ),
+                          _buildInputField(
+                            _emailController,
+                            'email',
+                            'Email',
+                            theme,
+                            keyboardType: TextInputType.emailAddress,
+                            validator: validateEmail,
+                          ),
+                          _buildInputField(
+                            _professionController,
+                            'profession',
+                            'Profissão',
+                            theme,
+                          ),
+                          if (_error != null) ...[
+                            const SizedBox(height: 10),
+                            Text(
+                              _error!,
+                              style: const TextStyle(color: Colors.red),
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
+
+                const SizedBox(height: 12),
+
+                // Ações
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
                       onPressed:
                           _loading ? null : () => Navigator.of(context).pop(),
                       child: const Text('Cancelar'),
                     ),
+                    const SizedBox(width: 8),
                     ElevatedButton.icon(
                       onPressed: _loading ? null : _submit,
                       icon:
@@ -169,8 +185,8 @@ class _AddPatientModalState extends State<AddPatientModal> {
                 ),
               ],
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }
@@ -186,28 +202,35 @@ class _AddPatientModalState extends State<AddPatientModal> {
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: TextFormField(
-        controller: controller,
-        keyboardType: keyboardType,
-        obscureText: obscureText,
-        onTap: () => _touchedFields.add(fieldKey),
-        validator: (value) {
-          if (!_touchedFields.contains(fieldKey)) return null;
-          return validator?.call(value);
-        },
-        decoration: InputDecoration(
-          labelText: label,
-          filled: true,
-          fillColor:
-              theme.inputDecorationTheme.fillColor ??
-              (theme.brightness == Brightness.dark
-                  ? Colors.grey[900]
-                  : Colors.grey[200]),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 12,
+      child: SizedBox(
+        height: 50, // mesmo tamanho mais alto de antes
+        child: TextFormField(
+          controller: controller,
+          keyboardType: keyboardType,
+          obscureText: obscureText,
+          maxLines: 1,
+          minLines: 1,
+          expands: false,
+          textAlignVertical: TextAlignVertical.center,
+          onTap: () => _touchedFields.add(fieldKey),
+          validator: (value) {
+            if (!_touchedFields.contains(fieldKey)) return null;
+            return validator?.call(value);
+          },
+          decoration: InputDecoration(
+            labelText: label,
+            filled: true,
+            fillColor:
+                theme.inputDecorationTheme.fillColor ??
+                (theme.brightness == Brightness.dark
+                    ? Colors.grey[900]
+                    : Colors.grey[200]),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12, // mais espaço interno vertical
+            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),
     );
