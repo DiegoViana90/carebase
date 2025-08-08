@@ -69,8 +69,6 @@ class _ConsultationsPageState extends State<ConsultationsPage> {
           debugPrint('⚠️ Erro ao converter item: $e');
         }
       }
-
-      debugPrint('✅ Consultas agrupadas por dia: ${grouped.keys}');
       setState(() => consultationsByDate = grouped);
     } catch (e) {
       debugPrint('⛔ Erro ao carregar consultas: $e');
