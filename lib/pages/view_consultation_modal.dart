@@ -1,8 +1,9 @@
 import 'package:carebase/core/services/consultation_service.dart';
 import 'package:carebase/enums/consult_status.dart';
+import 'package:carebase/enums/payment_method.dart';
+import 'payment_method_dialog.dart' show PaymentMethodDialog, PaymentLine;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter/services.dart';
 
 class ViewConsultationModal extends StatefulWidget {
   final int consultationId;
@@ -17,8 +18,9 @@ class ViewConsultationModal extends StatefulWidget {
   final String? texto1;
   final String? texto2;
   final String? texto3;
-  final double? amountPaid; // 👈 novo
-  final int? statusIndex; // 👈 novo
+  final double? amountPaid;
+  final int? statusIndex;
+  final List<PaymentLine>? initialPayments;
 
   const ViewConsultationModal({
     super.key,
@@ -34,6 +36,7 @@ class ViewConsultationModal extends StatefulWidget {
     this.texto3,
     this.amountPaid,
     this.statusIndex,
+    this.initialPayments, // <-- ADICIONE AQUI
   });
 
   @override
@@ -50,12 +53,28 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
   late final TextEditingController _texto3Ctrl;
   final TextEditingController _paidAmountCtrl = TextEditingController();
 
-  double _getNumericValue(String value) {
-    final cleaned = value.replaceAll('.', '').replaceAll(',', '.');
-    return double.tryParse(cleaned) ?? 0.0;
-  }
+  // pagamento
+  List<PaymentLine> _paymentLines = [];
+  PaymentMethod?
+  _paymentMethod; // método da 1ª linha (apenas para exibir chip antigo)
 
   ConsultStatus? _status;
+
+  final NumberFormat _money = NumberFormat.currency(
+    locale: 'pt_BR',
+    symbol: '',
+    decimalDigits: 2,
+  );
+
+  double _totalPayments() =>
+      _paymentLines.fold<double>(0.0, (sum, l) => sum + l.amount);
+
+  void _applyPaymentsToUI() {
+    _paidAmountCtrl.text = _money.format(_totalPayments());
+    _paymentMethod =
+        _paymentLines.isNotEmpty ? _paymentLines.first.method : null;
+    setState(() {});
+  }
 
   @override
   void initState() {
@@ -75,24 +94,22 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
     _texto2Ctrl = TextEditingController(text: widget.texto2 ?? '');
     _texto3Ctrl = TextEditingController(text: widget.texto3 ?? '');
 
-    // ✅ Preenche o valor pago, se vier
     final amount = widget.amountPaid;
     if (amount != null) {
-      final formatter = NumberFormat.currency(
-        locale: 'pt_BR',
-        symbol: '',
-        decimalDigits: 2,
-      );
-      _paidAmountCtrl.text = formatter.format(amount);
+      _paidAmountCtrl.text = _money.format(amount);
     }
 
-    // ✅ Converte status numérico para enum, se vier
     final statusIndex = widget.statusIndex;
     if (statusIndex != null) {
       _status = ConsultStatus.values.firstWhere(
         (s) => s.index == statusIndex,
         orElse: () => ConsultStatus.agendado,
       );
+    }
+    
+    if (widget.initialPayments != null && widget.initialPayments!.isNotEmpty) {
+      _paymentLines = List<PaymentLine>.from(widget.initialPayments!);
+      _applyPaymentsToUI(); // atualiza Total (calc.) e chip do método
     }
   }
 
@@ -137,18 +154,14 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
               Text('Término: ${formatter.format(widget.end)}'),
               const SizedBox(height: 16),
 
-              // 👇 Status + Valor pago
+              // Linha com Status, Total (somente leitura) e botão de pagamentos
               Row(
                 children: [
-                  SizedBox(
-                    width: 200,
+                  // STATUS
+                  Expanded(
                     child: DropdownButtonFormField<ConsultStatus>(
                       value: _status == ConsultStatus.agendado ? null : _status,
-                      onChanged: (value) {
-                        setState(() {
-                          _status = value;
-                        });
-                      },
+                      onChanged: (value) => setState(() => _status = value),
                       decoration: const InputDecoration(
                         labelText: 'Status da consulta',
                         border: OutlineInputBorder(),
@@ -158,26 +171,28 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
                         ),
                       ),
                       hint: const Text('Agendado'),
-                      items: ConsultStatus.values
-                          .where((s) => s != ConsultStatus.agendado)
-                          .map(
-                            (status) => DropdownMenuItem(
-                              value: status,
-                              child: Text(_statusLabel(status)),
-                            ),
-                          )
-                          .toList(),
+                      items:
+                          ConsultStatus.values
+                              .where((s) => s != ConsultStatus.agendado)
+                              .map(
+                                (status) => DropdownMenuItem(
+                                  value: status,
+                                  child: Text(_statusLabel(status)),
+                                ),
+                              )
+                              .toList(),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
+
+                  // TOTAL calculado (somente leitura)
                   SizedBox(
-                    width: 120,
+                    width: 140,
                     child: TextFormField(
                       controller: _paidAmountCtrl,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [_currencyFormatter],
+                      readOnly: true,
                       decoration: const InputDecoration(
-                        labelText: 'R\$ Pago',
+                        labelText: 'Total (calc.)',
                         border: OutlineInputBorder(),
                         contentPadding: EdgeInsets.symmetric(
                           horizontal: 12,
@@ -186,10 +201,50 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
                       ),
                     ),
                   ),
+                  const SizedBox(width: 8),
+
+                  // BOTÃO que abre o dialog de pagamentos
+                  SizedBox(
+                    width: 40,
+                    height: 40,
+                    child: IconButton(
+                      tooltip: 'Pagamento (múltiplas linhas)',
+                      onPressed: () async {
+                        final lines = await showDialog<List<PaymentLine>>(
+                          context: context,
+                          builder:
+                              (_) => PaymentMethodDialog(
+                                initialLines: _paymentLines,
+                              ),
+                        );
+                        if (lines != null) {
+                          _paymentLines = lines;
+                          _applyPaymentsToUI();
+                        }
+                      },
+                      icon: const Icon(Icons.payment, size: 20),
+                      style: IconButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  ),
                 ],
               ),
 
-              const SizedBox(height: 24),
+              if (_paymentMethod != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Chip(
+                      visualDensity: VisualDensity.compact,
+                      label: Text(_paymentMethod!.label),
+                    ),
+                  ),
+                ),
+
+              const SizedBox(height: 16),
 
               // Blocos editáveis
               Expanded(
@@ -207,7 +262,7 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
                 ),
               ),
 
-              // Botões
+              // Ações
               Align(
                 alignment: Alignment.bottomRight,
                 child: Row(
@@ -224,11 +279,13 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
                           showDialog(
                             context: context,
                             barrierDismissible: false,
-                            builder: (_) => const Center(
-                              child: CircularProgressIndicator(),
-                            ),
+                            builder:
+                                (_) => const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
                           );
 
+                          // 1) salva detalhes/status (sem valor/método)
                           await ConsultationService.updateConsultationDetails(
                             consultationId: widget.consultationId,
                             titulo1: _titulo1Ctrl.text.trim(),
@@ -237,14 +294,32 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
                             texto1: _texto1Ctrl.text.trim(),
                             texto2: _texto2Ctrl.text.trim(),
                             texto3: _texto3Ctrl.text.trim(),
-                            amountPaid: _getNumericValue(_paidAmountCtrl.text),
                             status: _status?.name,
                           );
+
+                          if (_paymentLines.isNotEmpty) {
+                            await ConsultationService.createPayments(
+                              consultationId: widget.consultationId,
+                              lines:
+                                  _paymentLines
+                                      .map(
+                                        (l) => {
+                                          'method':
+                                              l
+                                                  .method
+                                                  .index, // 👈 envia como int
+                                          'installments': l.installments,
+                                          'amount': l.amount,
+                                        },
+                                      )
+                                      .toList(),
+                            );
+                          }
 
                           Navigator.pop(context); // fecha loader
                           Navigator.pop(context, true); // fecha modal
                         } catch (e) {
-                          Navigator.pop(context); // fecha loader
+                          Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('Erro ao salvar: $e')),
                           );
@@ -267,9 +342,8 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
     TextEditingController titleCtrl,
     TextEditingController contentCtrl,
   ) {
-    // 👇 Ajuste de contraste no tema escuro para card branco
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final contentTextColor = isDark ? Colors.black87 : null; // claro segue padrão
+    final contentTextColor = isDark ? Colors.black87 : null;
     final hintTextColor = isDark ? Colors.grey[600] : null;
 
     return Padding(
@@ -291,7 +365,7 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
           const SizedBox(height: 8),
           Container(
             decoration: BoxDecoration(
-              color: Colors.white, // mantém card branco
+              color: Colors.white,
               borderRadius: BorderRadius.circular(12),
               boxShadow: const [
                 BoxShadow(
@@ -310,14 +384,10 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
                   maxLines: null,
                   expands: true,
                   textAlignVertical: TextAlignVertical.top,
-                  style: TextStyle(
-                    color: contentTextColor, // texto escuro no tema escuro
-                  ),
+                  style: TextStyle(color: contentTextColor),
                   decoration: InputDecoration.collapsed(
                     hintText: 'Escreva aqui...',
-                    hintStyle: TextStyle(
-                      color: hintTextColor, // hint com contraste
-                    ),
+                    hintStyle: TextStyle(color: hintTextColor),
                   ),
                 ),
               ),
@@ -327,33 +397,6 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
       ),
     );
   }
-
-  final _currencyFormatter = TextInputFormatter.withFunction((
-    oldValue,
-    newValue,
-  ) {
-    String newText = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
-
-    if (newText.isEmpty) return newValue.copyWith(text: '');
-
-    // Limita o número de dígitos a 7 (9999999 centavos = 99999,99 reais)
-    if (newText.length > 7) {
-      newText = newText.substring(0, 7);
-    }
-
-    final number = double.parse(newText) / 100;
-    final formatter = NumberFormat.currency(
-      locale: 'pt_BR',
-      symbol: '',
-      decimalDigits: 2,
-    );
-    final newString = formatter.format(number);
-
-    return TextEditingValue(
-      text: newString,
-      selection: TextSelection.collapsed(offset: newString.length),
-    );
-  });
 
   String _statusLabel(ConsultStatus status) {
     switch (status) {

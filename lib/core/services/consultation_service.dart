@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:carebase/pages/payment_method_dialog.dart';
 import 'package:http/http.dart' as http;
 import 'package:carebase/core/config/app_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,6 +11,7 @@ class ConsultationService {
     DateTime? endDate,
     String? notes,
     double? amountPaid,
+    String? paymentMethod, // 👈 opcional no create
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
@@ -24,6 +26,7 @@ class ConsultationService {
       if (endDate != null) 'endDate': endDate.toIso8601String(),
       if (notes != null) 'notes': notes,
       if (amountPaid != null) 'amountPaid': amountPaid,
+      if (paymentMethod != null) 'paymentMethod': paymentMethod, // 👈
     };
 
     final response = await http.post(
@@ -49,15 +52,11 @@ class ConsultationService {
     required String texto1,
     required String texto2,
     required String texto3,
-    double? amountPaid,
     String? status,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
-
-    if (token == null) {
-      throw Exception('Token de autenticação não encontrado.');
-    }
+    if (token == null) throw Exception('Token de autenticação não encontrado.');
 
     final body = {
       'consultationId': consultationId,
@@ -67,7 +66,6 @@ class ConsultationService {
       'texto1': texto1,
       'texto2': texto2,
       'texto3': texto3,
-      if (amountPaid != null) 'amountPaid': amountPaid,
       if (status != null) 'status': status,
     };
 
@@ -125,6 +123,7 @@ class ConsultationService {
     required int consultationId,
     required double amountPaid,
     required String? status,
+    String? paymentMethod, // 👈 NOVO (se a rota principal também aceita)
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
@@ -133,7 +132,11 @@ class ConsultationService {
       throw Exception('Token de autenticação não encontrado.');
     }
 
-    final body = {'amountPaid': amountPaid, 'status': status};
+    final body = {
+      'amountPaid': amountPaid,
+      'status': status,
+      if (paymentMethod != null) 'paymentMethod': paymentMethod, // 👈
+    };
 
     final response = await http.put(
       Uri.parse('${AppConfig.apiBaseUrl}/Consultations/$consultationId'),
@@ -182,4 +185,33 @@ class ConsultationService {
       throw Exception(json['message'] ?? 'Erro ao buscar detalhes.');
     }
   }
+// core/services/consultation_service.dart
+static Future<void> createPayments({
+  required int consultationId,
+  required List<Map<String, dynamic>> lines,
+}) async {
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('auth_token');
+  if (token == null) throw Exception('Token de autenticação não encontrado.');
+
+  final body = {
+    'consultationId': consultationId,
+    'lines': lines,
+  };
+
+  final resp = await http.post(
+    Uri.parse('${AppConfig.apiBaseUrl}/Consultations/$consultationId/payments'),
+    headers: {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    },
+    body: jsonEncode(body),
+  );
+
+  if (resp.statusCode != 201) {
+    final json = jsonDecode(resp.body);
+    throw Exception(json['message'] ?? 'Erro ao criar pagamentos.');
+  }
+}
+
 }

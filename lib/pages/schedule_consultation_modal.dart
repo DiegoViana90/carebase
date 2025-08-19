@@ -3,6 +3,8 @@ import 'package:carebase/pages/view_consultation_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:carebase/pages/confirm_consultation_modal.dart';
+import 'package:carebase/pages/payment_method_dialog.dart' show PaymentLine;
+import 'package:carebase/enums/payment_method.dart';
 
 class ScheduleConsultationModal extends StatefulWidget {
   final DateTime date;
@@ -51,7 +53,7 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
       final end = (slot['end'] as DateTime).toLocal();
       final patient = slot['patient'] ?? 'Indisponível';
       final color = slot['color'] ?? Colors.red;
-      final status = slot['status']; // 👈 adiciona aqui
+      final status = slot['status'];
 
       DateTime current = start;
       while (!current.isAfter(end.subtract(const Duration(minutes: 1)))) {
@@ -60,7 +62,7 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
         occupiedMap[key] = {
           'patient': patient,
           'color': color,
-          'status': status, // 👈 aqui também
+          'status': status,
         };
         current = current.add(const Duration(minutes: 30));
       }
@@ -167,29 +169,13 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
   Widget _getStatusIcon(int? status) {
     switch (status) {
       case 0:
-        return const Icon(
-          Icons.event_note,
-          size: 16,
-          color: Colors.white,
-        ); // Agendado
+        return const Icon(Icons.event_note, size: 16, color: Colors.white); // Agendado
       case 1:
-        return const Icon(
-          Icons.check_circle,
-          size: 16,
-          color: Colors.white,
-        ); // Compareceu
+        return const Icon(Icons.check_circle, size: 16, color: Colors.white); // Compareceu
       case 2:
-        return const Icon(
-          Icons.cancel,
-          size: 16,
-          color: Colors.white,
-        ); // Não Compareceu
+        return const Icon(Icons.cancel, size: 16, color: Colors.white); // Não Compareceu
       case 3:
-        return const Icon(
-          Icons.refresh,
-          size: 16,
-          color: Colors.white,
-        ); // Reagendado
+        return const Icon(Icons.refresh, size: 16, color: Colors.white); // Reagendado
       default:
         return const SizedBox.shrink();
     }
@@ -219,34 +205,31 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
               final patientName = occupancy?['patient'];
               final status = occupancy?['status'] as int?;
               final occupiedColor = switch (status) {
-                1 => Colors.green, // Compareceu
-                2 => Colors.red, // Não Compareceu
-                3 => Colors.blueGrey, // Reagendado
-                _ => Colors.orange, // Agendado ou outro
+                1 => Colors.green,
+                2 => Colors.red,
+                3 => Colors.blueGrey,
+                _ => Colors.orange,
               };
 
               final isEnabled = _isSelectable(time);
 
-              final textColor =
-                  isOccupied
-                      ? Colors.white
-                      : isSelected
+              final textColor = isOccupied
+                  ? Colors.white
+                  : isSelected
                       ? Theme.of(context).colorScheme.primary
                       : isEnabled
-                      ? Theme.of(context).textTheme.bodyLarge?.color
-                      : Theme.of(context).disabledColor;
+                          ? Theme.of(context).textTheme.bodyLarge?.color
+                          : Theme.of(context).disabledColor;
 
-              final backgroundColor =
-                  isOccupied
-                      ? occupiedColor ?? Colors.red
-                      : isSelected
+              final backgroundColor = isOccupied
+                  ? occupiedColor
+                  : isSelected
                       ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
                       : Colors.transparent;
 
-              final borderColor =
-                  isOccupied
-                      ? (occupiedColor ?? Colors.red).withOpacity(0.7)
-                      : isSelected
+              final borderColor = isOccupied
+                  ? (occupiedColor).withOpacity(0.7)
+                  : isSelected
                       ? Theme.of(context).colorScheme.primary
                       : Colors.grey.shade300;
 
@@ -273,48 +256,66 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
                       showDialog(
                         context: context,
                         barrierDismissible: false,
-                        builder:
-                            (_) => const Center(
-                              child: CircularProgressIndicator(),
-                            ),
+                        builder: (_) =>
+                            const Center(child: CircularProgressIndicator()),
                       );
 
                       try {
                         final details =
                             await ConsultationService.fetchConsultationDetails(
-                              slot['consultationId'],
-                            );
+                          slot['consultationId'],
+                        );
 
-                        Navigator.pop(context); // fecha o loader
+                        Navigator.pop(context); // fecha loader
+
+                        final paymentsRaw =
+                            (details?['payments'] as List?) ?? const [];
+
+                        final initialLines =
+                            paymentsRaw.map<PaymentLine>((raw) {
+                          final p = raw as Map<String, dynamic>;
+                          final methodIdx =
+                              (p['method'] as num?)?.toInt() ?? 0;
+                          final safeMethodIdx = methodIdx.clamp(
+                              0, PaymentMethod.values.length - 1);
+
+                          final installments =
+                              (p['installments'] as num?)?.toInt() ?? 1;
+                          final amount =
+                              (p['amount'] as num?)?.toDouble() ?? 0.0;
+
+                          return PaymentLine(
+                            method: PaymentMethod.values[safeMethodIdx],
+                            installments: installments,
+                            amount: amount,
+                          );
+                        }).toList();
 
                         final result = await showDialog<bool>(
                           context: context,
-                          builder:
-                              (_) => ViewConsultationModal(
-                                consultationId: slot['consultationId'],
-                                patient: slot['patientName'] ?? 'Desconhecido',
-                                start: slot['start'],
-                                end: slot['end'],
-                                titulo1: details?['titulo1'],
-                                titulo2: details?['titulo2'],
-                                titulo3: details?['titulo3'],
-                                texto1: details?['texto1'],
-                                texto2: details?['texto2'],
-                                texto3: details?['texto3'],
-                                amountPaid:
-                                    details?['consultation']?['amountPaid']
-                                        ?.toDouble(),
-                                statusIndex:
-                                    details?['consultation']?['status'],
-                              ),
+                          builder: (_) => ViewConsultationModal(
+                            consultationId: slot['consultationId'],
+                            patient: slot['patientName'] ?? 'Desconhecido',
+                            start: slot['start'],
+                            end: slot['end'],
+                            titulo1: details?['titulo1'],
+                            titulo2: details?['titulo2'],
+                            titulo3: details?['titulo3'],
+                            texto1: details?['texto1'],
+                            texto2: details?['texto2'],
+                            texto3: details?['texto3'],
+                            amountPaid:
+                                (details?['totalPaid'] ?? 0).toDouble(),
+                            statusIndex: details?['status'],
+                            initialPayments: initialLines, // passa os pagamentos
+                          ),
                         );
 
-                        // 👇 Se salvou, fecha este modal também com `true`
                         if (result == true) {
                           Navigator.pop(context, true);
                         }
                       } catch (e) {
-                        Navigator.pop(context); // fecha o loader
+                        Navigator.pop(context); // fecha loader
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text('Erro ao buscar detalhes: $e'),
@@ -326,7 +327,6 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
                     _toggleTimeSelection(time);
                   }
                 },
-
                 child: Container(
                   margin: const EdgeInsets.symmetric(vertical: 4),
                   decoration: BoxDecoration(
@@ -334,36 +334,27 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(color: borderColor, width: 1),
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 12,
-                    horizontal: 16,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  child: Row(
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            _formatTime(time),
-                            style: TextStyle(fontSize: 12, color: textColor),
-                          ),
-                          const SizedBox(width: 6),
-                          if (isOccupied) ...[
-                            _getStatusIcon(occupancy?['status']),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                '- $patientName',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: textColor,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ],
+                      Text(
+                        _formatTime(time),
+                        style: TextStyle(fontSize: 12, color: textColor),
                       ),
+                      const SizedBox(width: 6),
+                      if (isOccupied) ...[
+                        _getStatusIcon(occupancy?['status']),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            '- $patientName',
+                            style:
+                                TextStyle(fontSize: 12, color: textColor),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -378,23 +369,21 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
           child: const Text('Cancelar'),
         ),
         ElevatedButton.icon(
-          onPressed:
-              selectedTimes.isEmpty
-                  ? null
-                  : () async {
-                    final result = await showDialog<bool>(
-                      context: context,
-                      builder:
-                          (_) => ConfirmConsultationModal(
-                            selectedTimes: selectedTimes,
-                            availableTimes: availableTimes,
-                            date: widget.date,
-                          ),
-                    );
-                    if (result == true) {
-                      Navigator.pop(context, true);
-                    }
-                  },
+          onPressed: selectedTimes.isEmpty
+              ? null
+              : () async {
+                  final result = await showDialog<bool>(
+                    context: context,
+                    builder: (_) => ConfirmConsultationModal(
+                      selectedTimes: selectedTimes,
+                      availableTimes: availableTimes,
+                      date: widget.date,
+                    ),
+                  );
+                  if (result == true) {
+                    Navigator.pop(context, true);
+                  }
+                },
           icon: const Icon(Icons.add),
           label: const Text('Agendar'),
         ),
