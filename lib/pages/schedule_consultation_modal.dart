@@ -295,7 +295,7 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
                           context: context,
                           builder: (_) => ViewConsultationModal(
                             consultationId: slot['consultationId'],
-                            patient: slot['patientName'] ?? 'Desconhecido',
+                            patient: details?['patientName'] ?? 'Desconhecido',
                             start: slot['start'],
                             end: slot['end'],
                             titulo1: details?['titulo1'],
