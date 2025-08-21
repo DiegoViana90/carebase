@@ -185,33 +185,58 @@ class ConsultationService {
       throw Exception(json['message'] ?? 'Erro ao buscar detalhes.');
     }
   }
-// core/services/consultation_service.dart
-static Future<void> createPayments({
-  required int consultationId,
-  required List<Map<String, dynamic>> lines,
-}) async {
-  final prefs = await SharedPreferences.getInstance();
-  final token = prefs.getString('auth_token');
-  if (token == null) throw Exception('Token de autenticação não encontrado.');
 
-  final body = {
-    'consultationId': consultationId,
-    'lines': lines,
-  };
+  // core/services/consultation_service.dart
+  static Future<void> createPayments({
+    required int consultationId,
+    required List<Map<String, dynamic>> lines,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+    if (token == null) throw Exception('Token de autenticação não encontrado.');
 
-  final resp = await http.post(
-    Uri.parse('${AppConfig.apiBaseUrl}/Consultations/$consultationId/payments'),
-    headers: {
-      'Authorization': 'Bearer $token',
-      'Content-Type': 'application/json',
-    },
-    body: jsonEncode(body),
-  );
+    final body = {'consultationId': consultationId, 'lines': lines};
 
-  if (resp.statusCode != 201) {
-    final json = jsonDecode(resp.body);
-    throw Exception(json['message'] ?? 'Erro ao criar pagamentos.');
+    final resp = await http.post(
+      Uri.parse(
+        '${AppConfig.apiBaseUrl}/Consultations/$consultationId/payments',
+      ),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(body),
+    );
+
+    if (resp.statusCode != 201) {
+      final json = jsonDecode(resp.body);
+      throw Exception(json['message'] ?? 'Erro ao criar pagamentos.');
+    }
   }
-}
 
+  static Future<List<Map<String, dynamic>>> fetchConsultationsByPatient(
+    int patientId,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+    if (token == null) throw Exception('Token de autenticação não encontrado.');
+
+    final response = await http.get(
+      Uri.parse('${AppConfig.apiBaseUrl}/Consultations/patient/$patientId'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      return List<Map<String, dynamic>>.from(json['data']);
+    } else {
+      final json = jsonDecode(response.body);
+      throw Exception(
+        json['message'] ?? 'Erro ao buscar consultas do paciente.',
+      );
+    }
+  }
 }

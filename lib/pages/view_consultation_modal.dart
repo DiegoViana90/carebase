@@ -106,7 +106,7 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
         orElse: () => ConsultStatus.agendado,
       );
     }
-    
+
     if (widget.initialPayments != null && widget.initialPayments!.isNotEmpty) {
       _paymentLines = List<PaymentLine>.from(widget.initialPayments!);
       _applyPaymentsToUI(); // atualiza Total (calc.) e chip do método
@@ -232,14 +232,24 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
                 ],
               ),
 
-              if (_paymentMethod != null)
+              if (_paymentLines.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Align(
                     alignment: Alignment.centerRight,
-                    child: Chip(
-                      visualDensity: VisualDensity.compact,
-                      label: Text(_paymentMethod!.label),
+                    child: Wrap(
+                      spacing: 8,
+                      children:
+                          _paymentLines
+                              .map((line) => line.method)
+                              .toSet() // evita duplicatas
+                              .map(
+                                (method) => Chip(
+                                  visualDensity: VisualDensity.compact,
+                                  label: Text(method.label),
+                                ),
+                              )
+                              .toList(),
                     ),
                   ),
                 ),

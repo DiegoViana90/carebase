@@ -1,4 +1,3 @@
-// lib/pages/payment_method_dialog.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
@@ -6,7 +5,7 @@ import 'package:carebase/enums/payment_method.dart';
 
 class PaymentLine {
   final PaymentMethod method;
-  final int installments; // 1..12
+  final int installments;
   final double amount;
 
   PaymentLine({
@@ -30,14 +29,24 @@ class PaymentMethodDialog extends StatefulWidget {
 }
 
 class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
-  final _currencyFormatter = TextInputFormatter.withFunction((oldValue, newValue) {
+  final _currencyFormatter = TextInputFormatter.withFunction((
+    oldValue,
+    newValue,
+  ) {
     String digits = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
     if (digits.isEmpty) return const TextEditingValue(text: '');
     if (digits.length > 9) digits = digits.substring(0, 9);
     final value = double.parse(digits) / 100;
-    final f = NumberFormat.currency(locale: 'pt_BR', symbol: '', decimalDigits: 2);
+    final f = NumberFormat.currency(
+      locale: 'pt_BR',
+      symbol: '',
+      decimalDigits: 2,
+    );
     final s = f.format(value);
-    return TextEditingValue(text: s, selection: TextSelection.collapsed(offset: s.length));
+    return TextEditingValue(
+      text: s,
+      selection: TextSelection.collapsed(offset: s.length),
+    );
   });
 
   final _lines = <_EditableLine>[];
@@ -47,23 +56,31 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
     super.initState();
     if (widget.initialLines?.isNotEmpty == true) {
       for (final l in widget.initialLines!) {
-        _lines.add(_EditableLine(
-          method: l.method,
-          installments: l.installments,
-          amountCtrl: _amountToCtrl(l.amount),
-        ));
+        _lines.add(
+          _EditableLine(
+            method: l.method,
+            installments: l.installments,
+            amountCtrl: _amountToCtrl(l.amount),
+          ),
+        );
       }
     } else {
-      _lines.add(_EditableLine(
-        method: PaymentMethod.pix,
-        installments: 1,
-        amountCtrl: TextEditingController(),
-      ));
+      _lines.add(
+        _EditableLine(
+          method: PaymentMethod.pix,
+          installments: 1,
+          amountCtrl: TextEditingController(),
+        ),
+      );
     }
   }
 
   TextEditingController _amountToCtrl(double amount) {
-    final f = NumberFormat.currency(locale: 'pt_BR', symbol: '', decimalDigits: 2);
+    final f = NumberFormat.currency(
+      locale: 'pt_BR',
+      symbol: '',
+      decimalDigits: 2,
+    );
     return TextEditingController(text: f.format(amount));
   }
 
@@ -83,34 +100,52 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
   @override
   Widget build(BuildContext context) {
     final screen = MediaQuery.of(context).size;
-    // largura fixa para evitar IntrinsicWidth solicitar intrinsics do scrollable
-    final dialogWidth = screen.width > 700 ? 640.0 : (screen.width - 40).clamp(320.0, 640.0).toDouble();
-    // altura finita para a lista
+    final dialogWidth =
+        screen.width > 700
+            ? 640.0
+            : (screen.width - 40).clamp(320.0, 640.0).toDouble();
     final listMaxHeight = (screen.height * 0.45).clamp(200.0, 420.0).toDouble();
 
     return AlertDialog(
       title: const Text('Pagamento'),
       contentPadding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       content: SizedBox(
-        width: dialogWidth, // <- largura fixa
+        width: dialogWidth,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // cabeçalho
             Row(
               children: const [
-                Expanded(child: Text('Tipo de pagamento', style: TextStyle(fontWeight: FontWeight.w600))),
+                Expanded(
+                  child: Text(
+                    'Tipo de pagamento',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
                 SizedBox(width: 8),
-                SizedBox(width: 90, child: Text('Parcelas', style: TextStyle(fontWeight: FontWeight.w600))),
+                SizedBox(
+                  width: 75,
+                  child: Text(
+                    'Parcelas',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
                 SizedBox(width: 8),
-                SizedBox(width: 120, child: Text('Valor (R\$)', style: TextStyle(fontWeight: FontWeight.w600))),
+                SizedBox(
+                  width: 105,
+                  child: Text(
+                    'Valor (R\$)',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
                 SizedBox(width: 8),
                 SizedBox(width: 40),
               ],
             ),
             const SizedBox(height: 6),
 
-            // linhas (com altura finita)
+            // linhas de pagamento
             ConstrainedBox(
               constraints: BoxConstraints(maxHeight: listMaxHeight),
               child: ListView.separated(
@@ -121,12 +156,14 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
                 itemBuilder: (context, index) {
                   final line = _lines[index];
                   return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // método
                       Expanded(
                         child: DropdownButtonFormField<PaymentMethod>(
                           value: line.method,
-                          onChanged: (v) => setState(() => line.method = v ?? line.method),
+                          onChanged: (v) => setState(
+                            () => line.method = v ?? line.method,
+                          ),
                           items: PaymentMethod.values
                               .map((pm) => DropdownMenuItem(
                                     value: pm,
@@ -136,18 +173,21 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
                           decoration: const InputDecoration(
                             isDense: true,
                             border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
                           ),
                         ),
                       ),
                       const SizedBox(width: 8),
 
-                      // parcelas 1x..12x
                       SizedBox(
-                        width: 90,
+                        width: 75,
                         child: DropdownButtonFormField<int>(
                           value: line.installments,
-                          onChanged: (v) => setState(() => line.installments = v ?? 1),
+                          onChanged: (v) =>
+                              setState(() => line.installments = v ?? 1),
                           items: List.generate(12, (i) => i + 1)
                               .map((n) => DropdownMenuItem(
                                     value: n,
@@ -157,15 +197,17 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
                           decoration: const InputDecoration(
                             isDense: true,
                             border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
                           ),
                         ),
                       ),
                       const SizedBox(width: 8),
 
-                      // valor
                       SizedBox(
-                        width: 120,
+                        width: 105,
                         child: TextFormField(
                           controller: line.amountCtrl,
                           keyboardType: TextInputType.number,
@@ -173,21 +215,22 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
                           decoration: const InputDecoration(
                             isDense: true,
                             border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
                             hintText: '0,00',
                           ),
                         ),
                       ),
                       const SizedBox(width: 8),
 
-                      // remover
-                      SizedBox(
-                        width: 40,
-                        child: IconButton(
-                          tooltip: 'Remover',
-                          onPressed: _lines.length == 1 ? null : () => setState(() => _lines.removeAt(index)),
-                          icon: const Icon(Icons.delete_outline),
-                        ),
+                      IconButton(
+                        tooltip: 'Remover',
+                        onPressed: _lines.length == 1
+                            ? null
+                            : () => setState(() => _lines.removeAt(index)),
+                        icon: const Icon(Icons.delete_outline),
                       ),
                     ],
                   );
@@ -203,11 +246,13 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
               child: TextButton.icon(
                 onPressed: () {
                   setState(() {
-                    _lines.add(_EditableLine(
-                      method: PaymentMethod.pix,
-                      installments: 1,
-                      amountCtrl: TextEditingController(),
-                    ));
+                    _lines.add(
+                      _EditableLine(
+                        method: PaymentMethod.pix,
+                        installments: 1,
+                        amountCtrl: TextEditingController(),
+                      ),
+                    );
                   });
                 },
                 icon: const Icon(Icons.add),
@@ -233,11 +278,13 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
                 );
                 return;
               }
-              result.add(PaymentLine(
-                method: l.method,
-                installments: l.installments,
-                amount: amount,
-              ));
+              result.add(
+                PaymentLine(
+                  method: l.method,
+                  installments: l.installments,
+                  amount: amount,
+                ),
+              );
             }
             Navigator.pop(context, result);
           },

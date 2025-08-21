@@ -1,3 +1,4 @@
+import 'package:carebase/pages/patient_details_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:carebase/utils/base_page_layout.dart';
 import 'package:carebase/core/services/patient_service.dart';
@@ -288,8 +289,15 @@ class _PatientsPageState extends State<PatientsPage> {
                                           alignment: Alignment.centerRight,
                                           child: TextButton(
                                             onPressed: () {
-                                              // abrir detalhes
+                                              showDialog(
+                                                context: context,
+                                                builder:
+                                                    (_) => PatientDetailsModal(
+                                                      patient: patient,
+                                                    ),
+                                              );
                                             },
+
                                             child: const Text('Abrir Detalhes'),
                                           ),
                                         ),
