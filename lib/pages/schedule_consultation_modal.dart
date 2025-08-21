@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:carebase/pages/confirm_consultation_modal.dart';
 import 'package:carebase/pages/payment_method_dialog.dart' show PaymentLine;
 import 'package:carebase/enums/payment_method.dart';
+import 'package:carebase/ui/status_tag.dart';
 
 class ScheduleConsultationModal extends StatefulWidget {
   final DateTime date;
@@ -28,6 +29,9 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
 
   final ScrollController _scrollController = ScrollController();
 
+  // formatador de data do título
+  final _day = DateFormat('dd/MM/yyyy', 'pt_BR');
+
   @override
   void initState() {
     super.initState();
@@ -37,8 +41,8 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
   }
 
   void _generateTimeSlots() {
-    final start = TimeOfDay(hour: 6, minute: 0);
-    final end = TimeOfDay(hour: 22, minute: 0);
+    final start = const TimeOfDay(hour: 6, minute: 0);
+    final end = const TimeOfDay(hour: 22, minute: 0);
     TimeOfDay current = start;
 
     while (_compareTimes(current, end) <= 0) {
@@ -52,8 +56,8 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
       final start = (slot['start'] as DateTime).toLocal();
       final end = (slot['end'] as DateTime).toLocal();
       final patient = slot['patient'] ?? 'Indisponível';
-      final color = slot['color'] ?? Colors.red;
-      final status = slot['status'];
+      final status = slot['status']; // 0 agendado, 1 compareceu, 2 não compareceu, 3 reagendado
+      final consultationId = slot['consultationId'];
 
       DateTime current = start;
       while (!current.isAfter(end.subtract(const Duration(minutes: 1)))) {
@@ -61,8 +65,10 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
         final key = _keyFromTime(t);
         occupiedMap[key] = {
           'patient': patient,
-          'color': color,
           'status': status,
+          'consultationId': consultationId,
+          'start': start,
+          'end': end,
         };
         current = current.add(const Duration(minutes: 30));
       }
@@ -81,12 +87,15 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
   }
 
   void _scrollToCurrentTime() {
-    final now = TimeOfDay.now();
-    final closestIndex = availableTimes.indexWhere(
-      (t) => _compareTimes(t, now) >= 0,
-    );
-    final targetIndex = closestIndex > 0 ? closestIndex - 3 : 0;
-    final offset = targetIndex * 50.0;
+    final isToday = DateUtils.isSameDay(widget.date, DateTime.now());
+    final targetIndex = isToday
+        ? (() {
+            final now = TimeOfDay.now();
+            final idx = availableTimes.indexWhere((t) => _compareTimes(t, now) >= 0);
+            return idx > 0 ? idx - 3 : 0;
+          })()
+        : 4;
+    final offset = (targetIndex.clamp(0, availableTimes.length) * 50.0).toDouble();
 
     _scrollController.animateTo(
       offset,
@@ -95,14 +104,12 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
     );
   }
 
-  String _formatTime(TimeOfDay time) {
-    final dt = DateTime(0, 0, 0, time.hour, time.minute);
-    return DateFormat.jm().format(dt);
-  }
+  String _formatTime(TimeOfDay time) =>
+      '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
 
   void _toggleTimeSelection(TimeOfDay time) {
     setState(() {
-      bool isSelected = selectedTimes.contains(time);
+      final isSelected = selectedTimes.contains(time);
 
       if (isSelected) {
         selectedTimes.remove(time);
@@ -118,8 +125,7 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
           final prev = _addMinutes(first, -30);
           final next = _addMinutes(last, 30);
 
-          if (_compareTimes(time, prev) == 0 ||
-              _compareTimes(time, next) == 0) {
+          if (_compareTimes(time, prev) == 0 || _compareTimes(time, next) == 0) {
             selectedTimes.add(time);
             selectedTimes.sort(_compareTimes);
           }
@@ -132,7 +138,7 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
     if (selectedTimes.isEmpty) return [];
 
     selectedTimes.sort(_compareTimes);
-    List<TimeOfDay> contiguous = [selectedTimes.first];
+    final List<TimeOfDay> contiguous = [selectedTimes.first];
 
     for (int i = 1; i < selectedTimes.length; i++) {
       final prev = contiguous.last;
@@ -166,24 +172,10 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
         selectedTimes.contains(time);
   }
 
-  Widget _getStatusIcon(int? status) {
-    switch (status) {
-      case 0:
-        return const Icon(Icons.event_note, size: 16, color: Colors.white); // Agendado
-      case 1:
-        return const Icon(Icons.check_circle, size: 16, color: Colors.white); // Compareceu
-      case 2:
-        return const Icon(Icons.cancel, size: 16, color: Colors.white); // Não Compareceu
-      case 3:
-        return const Icon(Icons.refresh, size: 16, color: Colors.white); // Reagendado
-      default:
-        return const SizedBox.shrink();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final formattedDate = DateFormat('dd/MM/yyyy').format(widget.date);
+    final theme = Theme.of(context);
+    final formattedDate = _day.format(widget.date);
 
     return AlertDialog(
       title: Text('Selecionar horários - $formattedDate'),
@@ -202,44 +194,40 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
               final isSelected = selectedTimes.contains(time);
               final occupancy = occupiedMap[timeKey];
               final isOccupied = occupancy != null;
-              final patientName = occupancy?['patient'];
+              final patientName = occupancy?['patient'] as String?;
               final status = occupancy?['status'] as int?;
-              final occupiedColor = switch (status) {
-                1 => Colors.green,
-                2 => Colors.red,
-                3 => Colors.blueGrey,
-                _ => Colors.orange,
-              };
+
+              // Cores/estilos consistentes
+              final st = statusStyle(context, status);
 
               final isEnabled = _isSelectable(time);
 
               final textColor = isOccupied
-                  ? Colors.white
+                  ? st.fg
                   : isSelected
-                      ? Theme.of(context).colorScheme.primary
+                      ? theme.colorScheme.onPrimaryContainer
                       : isEnabled
-                          ? Theme.of(context).textTheme.bodyLarge?.color
-                          : Theme.of(context).disabledColor;
+                          ? theme.textTheme.bodyLarge?.color
+                          : theme.disabledColor;
 
               final backgroundColor = isOccupied
-                  ? occupiedColor
+                  ? st.bg
                   : isSelected
-                      ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
+                      ? theme.colorScheme.primaryContainer.withOpacity(0.6)
                       : Colors.transparent;
 
               final borderColor = isOccupied
-                  ? (occupiedColor).withOpacity(0.7)
+                  ? st.border.withOpacity(0.7)
                   : isSelected
-                      ? Theme.of(context).colorScheme.primary
-                      : Colors.grey.shade300;
+                      ? theme.colorScheme.primary
+                      : theme.dividerColor;
 
               return GestureDetector(
                 onTap: () async {
-                  if (occupiedMap.containsKey(timeKey)) {
+                  if (isOccupied) {
                     final slot = widget.occupiedSlots.firstWhere((s) {
-                      final start = s['start'] as DateTime;
-                      final end = s['end'] as DateTime;
-
+                      final start = (s['start'] as DateTime).toLocal();
+                      final end = (s['end'] as DateTime).toLocal();
                       final clickedDateTime = DateTime(
                         widget.date.year,
                         widget.date.month,
@@ -247,7 +235,6 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
                         time.hour,
                         time.minute,
                       );
-
                       return !clickedDateTime.isBefore(start) &&
                           clickedDateTime.isBefore(end);
                     }, orElse: () => {});
@@ -256,8 +243,7 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
                       showDialog(
                         context: context,
                         barrierDismissible: false,
-                        builder: (_) =>
-                            const Center(child: CircularProgressIndicator()),
+                        builder: (_) => const Center(child: CircularProgressIndicator()),
                       );
 
                       try {
@@ -268,21 +254,14 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
 
                         Navigator.pop(context); // fecha loader
 
-                        final paymentsRaw =
-                            (details?['payments'] as List?) ?? const [];
-
-                        final initialLines =
-                            paymentsRaw.map<PaymentLine>((raw) {
+                        final paymentsRaw = (details?['payments'] as List?) ?? const [];
+                        final initialLines = paymentsRaw.map<PaymentLine>((raw) {
                           final p = raw as Map<String, dynamic>;
-                          final methodIdx =
-                              (p['method'] as num?)?.toInt() ?? 0;
-                          final safeMethodIdx = methodIdx.clamp(
-                              0, PaymentMethod.values.length - 1);
-
-                          final installments =
-                              (p['installments'] as num?)?.toInt() ?? 1;
-                          final amount =
-                              (p['amount'] as num?)?.toDouble() ?? 0.0;
+                          final methodIdx = (p['method'] as num?)?.toInt() ?? 0;
+                          final safeMethodIdx =
+                              methodIdx.clamp(0, PaymentMethod.values.length - 1);
+                          final installments = (p['installments'] as num?)?.toInt() ?? 1;
+                          final amount = (p['amount'] as num?)?.toDouble() ?? 0.0;
 
                           return PaymentLine(
                             method: PaymentMethod.values[safeMethodIdx],
@@ -304,10 +283,9 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
                             texto1: details?['texto1'],
                             texto2: details?['texto2'],
                             texto3: details?['texto3'],
-                            amountPaid:
-                                (details?['totalPaid'] ?? 0).toDouble(),
+                            amountPaid: (details?['totalPaid'] ?? 0).toDouble(),
                             statusIndex: details?['status'],
-                            initialPayments: initialLines, // passa os pagamentos
+                            initialPayments: initialLines,
                           ),
                         );
 
@@ -317,9 +295,7 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
                       } catch (e) {
                         Navigator.pop(context); // fecha loader
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Erro ao buscar detalhes: $e'),
-                          ),
+                          SnackBar(content: Text('Erro ao buscar detalhes: $e')),
                         );
                       }
                     }
@@ -331,29 +307,30 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
                   margin: const EdgeInsets.symmetric(vertical: 4),
                   decoration: BoxDecoration(
                     color: backgroundColor,
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: borderColor, width: 1),
                   ),
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                   child: Row(
                     children: [
                       Text(
                         _formatTime(time),
                         style: TextStyle(fontSize: 12, color: textColor),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 8),
                       if (isOccupied) ...[
-                        _getStatusIcon(occupancy?['status']),
-                        const SizedBox(width: 4),
+                        statusIcon(status, color: st.fg, kind: StatusKind.attendance),
+                        const SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            '- $patientName',
-                            style:
-                                TextStyle(fontSize: 12, color: textColor),
+                            '- ${patientName ?? "Indisponível"}',
+                            style: TextStyle(fontSize: 12, color: textColor),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        // Se preferir um chip ao invés de ícone+nome:
+                        // const SizedBox(width: 6),
+                        // StatusTag(status: status, kind: StatusKind.attendance, showIcon: true),
                       ],
                     ],
                   ),
