@@ -104,4 +104,38 @@ class PatientService {
       throw Exception(json['message'] ?? 'Erro ao cadastrar paciente.');
     }
   }
+
+  static Future<Map<String, dynamic>> updatePatient({
+    required int patientId,
+    String? email,
+    String? phone,
+    String? profession,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+
+    if (token == null) throw Exception('Token de autenticação não encontrado.');
+
+    final response = await http.put(
+      Uri.parse('${AppConfig.apiBaseUrl}/Patients/$patientId'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'email': email,
+        'phone': phone,
+        'profession': profession,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      return json['data'] as Map<String, dynamic>;
+    } else {
+      final json = jsonDecode(response.body);
+      throw Exception(json['message'] ?? 'Erro ao atualizar paciente.');
+    }
+  }
+  
 }

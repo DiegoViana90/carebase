@@ -1,3 +1,4 @@
+import 'package:carebase/core/services/patient_service.dart';
 import 'package:carebase/pages/patient_consultations_modal.dart';
 import 'package:flutter/material.dart';
 
@@ -118,21 +119,43 @@ class _PatientDetailsModalState extends State<PatientDetailsModal> {
     );
   }
 
-  void _saveAll() {
+void _saveAll() async {
+  try {
+    final updated = await PatientService.updatePatient(
+      patientId: widget.patient['patientId'],
+      email: emailController.text,
+      phone: phoneController.text,
+      profession: professionController.text,
+    );
+
     setState(() {
-      originalEmail = emailController.text;
-      originalPhone = phoneController.text;
-      originalProfession = professionController.text;
+      originalEmail = updated['email'] ?? '';
+      originalPhone = updated['phone'] ?? '';
+      originalProfession = updated['profession'] ?? '';
       isEditingEmail = false;
       isEditingPhone = false;
       isEditingProfession = false;
       hasChanges = false;
+
+      // 🔥 atualiza o objeto em memória
+      widget.patient['email'] = updated['email'];
+      widget.patient['phone'] = updated['phone'];
+      widget.patient['profession'] = updated['profession'];
     });
-    // TODO: Salvar no backend se necessário
+
+    // devolve o paciente atualizado para a lista
+    Navigator.pop(context, updated);
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Alterações salvas com sucesso!')),
     );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Erro: $e')),
+    );
   }
+}
+
 
   @override
   Widget build(BuildContext context) {

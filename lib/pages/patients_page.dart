@@ -288,16 +288,32 @@ class _PatientsPageState extends State<PatientsPage> {
                                         Align(
                                           alignment: Alignment.centerRight,
                                           child: TextButton(
-                                            onPressed: () {
-                                              showDialog(
+                                            onPressed: () async {
+                                              final updated = await showDialog<
+                                                Map<String, dynamic>
+                                              >(
                                                 context: context,
                                                 builder:
                                                     (_) => PatientDetailsModal(
                                                       patient: patient,
                                                     ),
                                               );
-                                            },
 
+                                              if (updated != null) {
+                                                setState(() {
+                                                  final index = allPatients
+                                                      .indexWhere(
+                                                        (p) =>
+                                                            p['patientId'] ==
+                                                            updated['patientId'],
+                                                      );
+                                                  if (index != -1) {
+                                                    allPatients[index] =
+                                                        updated; // 🔥 Atualiza só o item editado
+                                                  }
+                                                });
+                                              }
+                                            },
                                             child: const Text('Abrir Detalhes'),
                                           ),
                                         ),
