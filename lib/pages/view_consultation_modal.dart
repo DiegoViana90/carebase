@@ -1,9 +1,10 @@
 import 'package:carebase/core/services/consultation_service.dart';
 import 'package:carebase/enums/consult_status.dart';
 import 'package:carebase/enums/payment_method.dart';
-import 'payment_method_dialog.dart' show PaymentMethodDialog, PaymentLine;
+import 'package:carebase/pages/payment_method_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:carebase/models/payment_line.dart';
 
 class ViewConsultationModal extends StatefulWidget {
   final int consultationId;
@@ -36,7 +37,7 @@ class ViewConsultationModal extends StatefulWidget {
     this.texto3,
     this.amountPaid,
     this.statusIndex,
-    this.initialPayments, // <-- ADICIONE AQUI
+    this.initialPayments,
   });
 
   @override
@@ -53,10 +54,9 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
   late final TextEditingController _texto3Ctrl;
   final TextEditingController _paidAmountCtrl = TextEditingController();
 
-  // pagamento
+  // payments
   List<PaymentLine> _paymentLines = [];
-  PaymentMethod?
-  _paymentMethod; // método da 1ª linha (apenas para exibir chip antigo)
+  PaymentMethod? _paymentMethod;
 
   ConsultStatus? _status;
 
@@ -109,7 +109,7 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
 
     if (widget.initialPayments != null && widget.initialPayments!.isNotEmpty) {
       _paymentLines = List<PaymentLine>.from(widget.initialPayments!);
-      _applyPaymentsToUI(); // atualiza Total (calc.) e chip do método
+      _applyPaymentsToUI();
     }
   }
 
@@ -154,10 +154,9 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
               Text('Término: ${formatter.format(widget.end)}'),
               const SizedBox(height: 16),
 
-              // Linha com Status, Total (somente leitura) e botão de pagamentos
+              // Row with Status, Total, and payments button
               Row(
                 children: [
-                  // STATUS
                   Expanded(
                     child: DropdownButtonFormField<ConsultStatus>(
                       value: _status == ConsultStatus.agendado ? null : _status,
@@ -185,7 +184,7 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
                   ),
                   const SizedBox(width: 8),
 
-                  // TOTAL calculado (somente leitura)
+                  // total calculated
                   SizedBox(
                     width: 140,
                     child: TextFormField(
@@ -203,22 +202,23 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
                   ),
                   const SizedBox(width: 8),
 
-                  // BOTÃO que abre o dialog de pagamentos
+                  // open PaymentMethodDialog
                   SizedBox(
                     width: 40,
                     height: 40,
                     child: IconButton(
                       tooltip: 'Pagamento (múltiplas linhas)',
                       onPressed: () async {
-                        final lines = await showDialog<List<PaymentLine>>(
+                        final payments = await showDialog<List<PaymentLine>>(
                           context: context,
                           builder:
                               (_) => PaymentMethodDialog(
                                 initialLines: _paymentLines,
                               ),
                         );
-                        if (lines != null) {
-                          _paymentLines = lines;
+
+                        if (payments != null) {
+                          _paymentLines = payments;
                           _applyPaymentsToUI();
                         }
                       },
@@ -242,7 +242,7 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
                       children:
                           _paymentLines
                               .map((line) => line.method)
-                              .toSet() // evita duplicatas
+                              .toSet()
                               .map(
                                 (method) => Chip(
                                   visualDensity: VisualDensity.compact,
@@ -256,7 +256,7 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
 
               const SizedBox(height: 16),
 
-              // Blocos editáveis
+              // Editable blocks
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
@@ -272,7 +272,7 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
                 ),
               ),
 
-              // Ações
+              // actions
               Align(
                 alignment: Alignment.bottomRight,
                 child: Row(
@@ -295,7 +295,6 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
                                 ),
                           );
 
-                          // 1) salva detalhes/status (sem valor/método)
                           await ConsultationService.updateConsultationDetails(
                             consultationId: widget.consultationId,
                             titulo1: _titulo1Ctrl.text.trim(),
@@ -311,23 +310,24 @@ class _ViewConsultationModalState extends State<ViewConsultationModal> {
                             await ConsultationService.createPayments(
                               consultationId: widget.consultationId,
                               lines:
-                                  _paymentLines
-                                      .map(
-                                        (l) => {
-                                          'method':
-                                              l
-                                                  .method
-                                                  .index, // 👈 envia como int
-                                          'installments': l.installments,
-                                          'amount': l.amount,
-                                        },
-                                      )
-                                      .toList(),
+                                  _paymentLines.map((l) {
+                                    return {
+                                      'method':
+                                          l
+                                              .method
+                                              .name, // ✅ agora manda "pix", "debito", etc.
+                                      'installments': l.installments,
+                                      'amount': l.amount,
+                                      if (l.installmentsDetails != null)
+                                        'installmentsDetails':
+                                            l.installmentsDetails,
+                                    };
+                                  }).toList(),
                             );
                           }
 
-                          Navigator.pop(context); // fecha loader
-                          Navigator.pop(context, true); // fecha modal
+                          Navigator.pop(context); // close loader
+                          Navigator.pop(context, true); // close modal
                         } catch (e) {
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(

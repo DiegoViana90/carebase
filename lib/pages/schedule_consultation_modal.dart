@@ -1,9 +1,9 @@
 import 'package:carebase/core/services/consultation_service.dart';
+import 'package:carebase/models/payment_line.dart';
 import 'package:carebase/pages/view_consultation_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:carebase/pages/confirm_consultation_modal.dart';
-import 'package:carebase/pages/payment_method_dialog.dart' show PaymentLine;
 import 'package:carebase/enums/payment_method.dart';
 import 'package:carebase/ui/status_tag.dart';
 
@@ -56,7 +56,8 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
       final start = (slot['start'] as DateTime).toLocal();
       final end = (slot['end'] as DateTime).toLocal();
       final patient = slot['patient'] ?? 'Indisponível';
-      final status = slot['status']; // 0 agendado, 1 compareceu, 2 não compareceu, 3 reagendado
+      final status =
+          slot['status']; // 0 agendado, 1 compareceu, 2 não compareceu, 3 reagendado
       final consultationId = slot['consultationId'];
 
       DateTime current = start;
@@ -88,14 +89,18 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
 
   void _scrollToCurrentTime() {
     final isToday = DateUtils.isSameDay(widget.date, DateTime.now());
-    final targetIndex = isToday
-        ? (() {
-            final now = TimeOfDay.now();
-            final idx = availableTimes.indexWhere((t) => _compareTimes(t, now) >= 0);
-            return idx > 0 ? idx - 3 : 0;
-          })()
-        : 4;
-    final offset = (targetIndex.clamp(0, availableTimes.length) * 50.0).toDouble();
+    final targetIndex =
+        isToday
+            ? (() {
+              final now = TimeOfDay.now();
+              final idx = availableTimes.indexWhere(
+                (t) => _compareTimes(t, now) >= 0,
+              );
+              return idx > 0 ? idx - 3 : 0;
+            })()
+            : 4;
+    final offset =
+        (targetIndex.clamp(0, availableTimes.length) * 50.0).toDouble();
 
     _scrollController.animateTo(
       offset,
@@ -125,7 +130,8 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
           final prev = _addMinutes(first, -30);
           final next = _addMinutes(last, 30);
 
-          if (_compareTimes(time, prev) == 0 || _compareTimes(time, next) == 0) {
+          if (_compareTimes(time, prev) == 0 ||
+              _compareTimes(time, next) == 0) {
             selectedTimes.add(time);
             selectedTimes.sort(_compareTimes);
           }
@@ -202,23 +208,26 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
 
               final isEnabled = _isSelectable(time);
 
-              final textColor = isOccupied
-                  ? st.fg
-                  : isSelected
+              final textColor =
+                  isOccupied
+                      ? st.fg
+                      : isSelected
                       ? theme.colorScheme.onPrimaryContainer
                       : isEnabled
-                          ? theme.textTheme.bodyLarge?.color
-                          : theme.disabledColor;
+                      ? theme.textTheme.bodyLarge?.color
+                      : theme.disabledColor;
 
-              final backgroundColor = isOccupied
-                  ? st.bg
-                  : isSelected
+              final backgroundColor =
+                  isOccupied
+                      ? st.bg
+                      : isSelected
                       ? theme.colorScheme.primaryContainer.withOpacity(0.6)
                       : Colors.transparent;
 
-              final borderColor = isOccupied
-                  ? st.border.withOpacity(0.7)
-                  : isSelected
+              final borderColor =
+                  isOccupied
+                      ? st.border.withOpacity(0.7)
+                      : isSelected
                       ? theme.colorScheme.primary
                       : theme.dividerColor;
 
@@ -243,50 +252,66 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
                       showDialog(
                         context: context,
                         barrierDismissible: false,
-                        builder: (_) => const Center(child: CircularProgressIndicator()),
+                        builder:
+                            (_) => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
                       );
 
                       try {
                         final details =
                             await ConsultationService.fetchConsultationDetails(
-                          slot['consultationId'],
-                        );
+                              slot['consultationId'],
+                            );
 
                         Navigator.pop(context); // fecha loader
 
-                        final paymentsRaw = (details?['payments'] as List?) ?? const [];
-                        final initialLines = paymentsRaw.map<PaymentLine>((raw) {
-                          final p = raw as Map<String, dynamic>;
-                          final methodIdx = (p['method'] as num?)?.toInt() ?? 0;
-                          final safeMethodIdx =
-                              methodIdx.clamp(0, PaymentMethod.values.length - 1);
-                          final installments = (p['installments'] as num?)?.toInt() ?? 1;
-                          final amount = (p['amount'] as num?)?.toDouble() ?? 0.0;
+                        final paymentsRaw =
+                            (details?['payments'] as List?) ?? const [];
+                        final initialLines =
+                            paymentsRaw.map<PaymentLine>((raw) {
+                              final p = raw as Map<String, dynamic>;
+                              final methodIdx =
+                                  (p['method'] as num?)?.toInt() ?? 0;
+                              final safeMethodIdx = methodIdx.clamp(
+                                0,
+                                PaymentMethod.values.length - 1,
+                              );
+                              final installments =
+                                  (p['installments'] as num?)?.toInt() ?? 1;
+                              final amount =
+                                  (p['amount'] as num?)?.toDouble() ?? 0.0;
 
-                          return PaymentLine(
-                            method: PaymentMethod.values[safeMethodIdx],
-                            installments: installments,
-                            amount: amount,
-                          );
-                        }).toList();
+                              return PaymentLine(
+                                method: PaymentMethod.values[safeMethodIdx],
+                                installments: installments,
+                                amount: amount,
+                                expectedTotal:
+                                    (p['expectedTotal'] as num?)?.toDouble() ??
+                                    amount, // fallback
+                              );
+                            }).toList();
 
                         final result = await showDialog<bool>(
                           context: context,
-                          builder: (_) => ViewConsultationModal(
-                            consultationId: slot['consultationId'],
-                            patient: details?['patientName'] ?? 'Desconhecido',
-                            start: slot['start'],
-                            end: slot['end'],
-                            titulo1: details?['titulo1'],
-                            titulo2: details?['titulo2'],
-                            titulo3: details?['titulo3'],
-                            texto1: details?['texto1'],
-                            texto2: details?['texto2'],
-                            texto3: details?['texto3'],
-                            amountPaid: (details?['totalPaid'] ?? 0).toDouble(),
-                            statusIndex: details?['status'],
-                            initialPayments: initialLines,
-                          ),
+                          builder:
+                              (_) => ViewConsultationModal(
+                                consultationId: slot['consultationId'],
+                                patient:
+                                    details?['patientName'] ?? 'Desconhecido',
+                                start: slot['start'],
+                                end: slot['end'],
+                                titulo1: details?['titulo1'],
+                                titulo2: details?['titulo2'],
+                                titulo3: details?['titulo3'],
+                                texto1: details?['texto1'],
+                                texto2: details?['texto2'],
+                                texto3: details?['texto3'],
+                                amountPaid:
+                                    (details?['totalPaid'] ?? 0).toDouble(),
+                                statusIndex: details?['status'],
+                                initialPayments: initialLines,
+                              ),
                         );
 
                         if (result == true) {
@@ -295,7 +320,9 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
                       } catch (e) {
                         Navigator.pop(context); // fecha loader
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Erro ao buscar detalhes: $e')),
+                          SnackBar(
+                            content: Text('Erro ao buscar detalhes: $e'),
+                          ),
                         );
                       }
                     }
@@ -310,7 +337,10 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: borderColor, width: 1),
                   ),
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 16,
+                  ),
                   child: Row(
                     children: [
                       Text(
@@ -319,7 +349,11 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
                       ),
                       const SizedBox(width: 8),
                       if (isOccupied) ...[
-                        statusIcon(status, color: st.fg, kind: StatusKind.attendance),
+                        statusIcon(
+                          status,
+                          color: st.fg,
+                          kind: StatusKind.attendance,
+                        ),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
@@ -328,8 +362,7 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        // Se preferir um chip ao invés de ícone+nome:
-                        // const SizedBox(width: 6),
+                        // ou se quiser trocar por chip:
                         // StatusTag(status: status, kind: StatusKind.attendance, showIcon: true),
                       ],
                     ],
@@ -346,21 +379,23 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
           child: const Text('Cancelar'),
         ),
         ElevatedButton.icon(
-          onPressed: selectedTimes.isEmpty
-              ? null
-              : () async {
-                  final result = await showDialog<bool>(
-                    context: context,
-                    builder: (_) => ConfirmConsultationModal(
-                      selectedTimes: selectedTimes,
-                      availableTimes: availableTimes,
-                      date: widget.date,
-                    ),
-                  );
-                  if (result == true) {
-                    Navigator.pop(context, true);
-                  }
-                },
+          onPressed:
+              selectedTimes.isEmpty
+                  ? null
+                  : () async {
+                    final result = await showDialog<bool>(
+                      context: context,
+                      builder:
+                          (_) => ConfirmConsultationModal(
+                            selectedTimes: selectedTimes,
+                            availableTimes: availableTimes,
+                            date: widget.date,
+                          ),
+                    );
+                    if (result == true) {
+                      Navigator.pop(context, true);
+                    }
+                  },
           icon: const Icon(Icons.add),
           label: const Text('Agendar'),
         ),
