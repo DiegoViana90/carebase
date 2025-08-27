@@ -268,29 +268,26 @@ class _ScheduleConsultationModalState extends State<ScheduleConsultationModal> {
 
                         final paymentsRaw =
                             (details?['payments'] as List?) ?? const [];
-                        final initialLines =
-                            paymentsRaw.map<PaymentLine>((raw) {
-                              final p = raw as Map<String, dynamic>;
-                              final methodIdx =
-                                  (p['method'] as num?)?.toInt() ?? 0;
-                              final safeMethodIdx = methodIdx.clamp(
-                                0,
-                                PaymentMethod.values.length - 1,
-                              );
-                              final installments =
-                                  (p['installments'] as num?)?.toInt() ?? 1;
-                              final amount =
-                                  (p['amount'] as num?)?.toDouble() ?? 0.0;
+final initialLines = paymentsRaw.map<PaymentLine>((raw) {
+  final p = raw as Map<String, dynamic>;
+  final methodIdx = (p['method'] as num?)?.toInt() ?? 0;
+  final safeMethodIdx = methodIdx.clamp(0, PaymentMethod.values.length - 1);
+  final installments = (p['installments'] as num?)?.toInt() ?? 1;
+  final amount = (p['amount'] as num?)?.toDouble() ?? 0.0;
 
-                              return PaymentLine(
-                                method: PaymentMethod.values[safeMethodIdx],
-                                installments: installments,
-                                amount: amount,
-                                expectedTotal:
-                                    (p['expectedTotal'] as num?)?.toDouble() ??
-                                    amount, // fallback
-                              );
-                            }).toList();
+  final details = (p['installmentsDetails'] as List<dynamic>?)
+      ?.map((e) => InstallmentDetail.fromJson(e as Map<String, dynamic>))
+      .toList();
+
+  return PaymentLine(
+    method: PaymentMethod.values[safeMethodIdx],
+    installments: installments,
+    amount: amount,
+    expectedTotal: (p['expectedTotal'] as num?)?.toDouble() ?? amount,
+    installmentsDetails: details,
+  );
+}).toList();
+
 
                         final result = await showDialog<bool>(
                           context: context,

@@ -324,11 +324,13 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
   }
 }
 
+// dentro da classe _EditableLine
+
 class _EditableLine {
   PaymentMethod method;
   int installments;
   final TextEditingController amountCtrl;
-  List<Map<String, dynamic>>? details;
+  List<InstallmentDetail>? details;
 
   _EditableLine({
     required this.method,
@@ -337,3 +339,4 @@ class _EditableLine {
     this.details,
   });
 }
+
